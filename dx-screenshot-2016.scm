@@ -25,6 +25,8 @@
         (background-name (car (gimp-item-get-name background-layer)))
         (shadow-layer 0)
         (white-layer 0)
+
+        (bordered-selection 0)
         (user-selection 0)
 
         (sel-docked-left FALSE)
@@ -39,14 +41,14 @@
     (gimp-image-set-active-layer image background-layer) ; The main layer
     (set! user-selection (car (gimp-selection-save image))) ; Save selection
 
-    (gimp-image-undo-group-start image) ; --------- Border Start ---------
-    (if (= draw-border TRUE) (begin
+    (if (= draw-border TRUE) (begin           ; --------- Border Start ---------
+    (gimp-image-undo-group-start image)
 
-        ; --------- Selection fix ---------
+        ; Selection fix
         (if (= selection-exists FALSE) (begin
             (gimp-image-resize image (+ image-width 2) (+ image-height 2) 1 1)
 
-            (set! image-width (+ image-width 2))   ; Updare image
+            (set! image-width (+ image-width 2))   ; Update image
             (set! image-height (+ image-height 2)) ; demendions
 
             (gimp-selection-all image)
@@ -96,6 +98,8 @@
             (set! image-height (car (gimp-image-height image))) ; dimensions
         ))
 
+        (set! bordered-selection (car (gimp-selection-save image)))
+
         (set! border-layer (car (gimp-layer-new image
                                                 image-width
                                                 image-height
@@ -105,15 +109,13 @@
                                                 NORMAL-MODE
         )                  )    )
         (gimp-drawable-fill border-layer TRANSPARENT-FILL)
-        (gimp-image-insert-layer image border-layer
-                0 ; no parent
-                (- (car (gimp-image-get-layers image)) 1) ; The pre-last layer
-        )
+        (gimp-image-insert-layer image border-layer 0 ; no parent
+                (- (car (gimp-image-get-layers image)) 1)) ; The pre-last layer
         (gimp-context-set-foreground border-color)
 
         (gimp-image-select-rectangle image CHANNEL-OP-SUBTRACT
-                        (+ (list-ref (gimp-selection-bounds image) 1) 1)   ;x0
-                        (+ (list-ref (gimp-selection-bounds image) 2) 1)   ;y0
+                        (+ (list-ref (gimp-selection-bounds image) 1) 1)  ;x0
+                        (+ (list-ref (gimp-selection-bounds image) 2) 1)  ;y0
                         (-  (list-ref (gimp-selection-bounds image) 3)
                             (list-ref (gimp-selection-bounds image) 1) 2) ;w
                         (-  (list-ref (gimp-selection-bounds image) 4)
@@ -130,12 +132,23 @@
                                     SELECT-CRITERION-COMPOSITE
                                     0 0
         )
-    )) ; (if (= draw-border TRUE)
-    (gimp-image-undo-group-end image) ; --------- Border End ---------
+        (gimp-selection-load bordered-selection) ; Load border selection
+        (gimp-image-set-active-layer image background-layer)
+    (gimp-image-undo-group-end image)
+    ))                                         ; --------- Border End ---------
 
-    (gimp-selection-load user-selection)
 
-    (if (= drop-shadow TRUE) (begin  ; --------- Shadow ---------
+    (gimp-image-crop image ; Crop to selection
+                     (- (list-ref (cdr (gimp-selection-bounds image)) 2)
+                        (list-ref (cdr (gimp-selection-bounds image)) 0))
+                     (- (list-ref (cdr (gimp-selection-bounds image)) 3)
+                        (list-ref (cdr (gimp-selection-bounds image)) 1))
+                     (list-ref (cdr (gimp-selection-bounds image)) 0)
+                     (list-ref (cdr (gimp-selection-bounds image)) 1))
+
+    (gimp-selection-load user-selection) ; Recover selection
+
+    (if (= drop-shadow TRUE) (begin                 ; --------- Shadow ---------
         (gimp-image-undo-group-start image)
 
         (script-fu-drop-shadow  image background-layer
@@ -144,33 +157,48 @@
                                 shadow-blur
                                 shadow-color
                                 shadow-opacity
-                                1    ; Allow resizing
-        )
-        (set! shadow-layer (car (gimp-image-get-layer-by-name image "Drop Shadow")))
+                                1)    ; Allow resizing
+        (set! shadow-layer (car (gimp-image-get-layer-by-name image
+                                                              "Drop Shadow")))
         (gimp-item-set-name shadow-layer "Shadow")
         (gimp-image-lower-item-to-bottom image shadow-layer)
+        (gimp-image-raise-item image shadow-layer) ; Border, Shadow, Background
 
         (gimp-image-undo-group-end image)
-    ))
+    ))                                          ; --------- Shadow End ---------
 
     (gimp-image-undo-group-start image)
-      (gimp-selection-none image)
-         (set! white-layer (car (gimp-layer-new image (car (gimp-image-width image)) (car (gimp-image-height image)) RGBA-IMAGE "White" 100 NORMAL-MODE)))
-       (gimp-drawable-fill white-layer WHITE-FILL)
-      (gimp-image-insert-layer image white-layer 0 (car (gimp-image-get-layers image)))
+        (gimp-selection-none image)
+        (set! white-layer  (car (gimp-layer-new image
+                                           (car (gimp-image-width image))
+                                           (car (gimp-image-height image))
+                                           RGBA-IMAGE "White" 100 NORMAL-MODE)))
+        (gimp-drawable-fill white-layer WHITE-FILL)
+        (gimp-image-insert-layer image white-layer 0
+                                 (car (gimp-image-get-layers image))) ; To end
+        (gimp-image-remove-channel image user-selection)     ; Clean up
+        (gimp-image-remove-channel image bordered-selection) ; channels
     (gimp-image-undo-group-end image)
 
     (if (= is-GIF TRUE) (begin
-        (gimp-image-undo-group-start image)
-            (set! border-layer (car (gimp-image-merge-down image border-layer EXPAND-AS-NECESSARY))) ; 1. Border & Background -> Border
-            (set! border-layer (car (gimp-image-merge-down image border-layer EXPAND-AS-NECESSARY))) ; 2. Border & Shadow -> Border
-            (set! background-layer (car (gimp-image-merge-down image border-layer EXPAND-AS-NECESSARY))) ; 3. Border & White -> Background
-            (gimp-item-set-name background-layer background-name)
+        (gimp-image-undo-group-start image) ; --------- Merge layers ----------
+            (set! border-layer (car (gimp-image-merge-down image border-layer
+                                                           EXPAND-AS-NECESSARY))
+            ) ; 1. Border & Background -> Border
+            (set! border-layer (car (gimp-image-merge-down image border-layer
+                                                           EXPAND-AS-NECESSARY))
+            ) ; 2. Border & Shadow -> Border
+            (set! background-layer (car (gimp-image-merge-down image
+                                                           border-layer
+                                                           EXPAND-AS-NECESSARY))
+            ) ; 3. Border & White -> Background
+            (gimp-item-set-name background-layer
+                                background-name) ; Important! Recovers duration
         (gimp-image-undo-group-end image)
 
-        (gimp-image-convert-indexed image NO-DITHER MAKE-PALETTE 255 TRUE TRUE ""))
+        (gimp-image-convert-indexed image NO-DITHER MAKE-PALETTE
+                                    255 TRUE TRUE ""))
     )
-    (gimp-image-remove-channel image user-selection)
 ;END -----------------------------------------------------------
   (gimp-displays-flush)
   (gimp-context-pop)
@@ -188,14 +216,14 @@
     "RGB* INDEXED* GRAY*"
     SF-IMAGE      "Image"                               0
     SF-DRAWABLE   "Drawable"                            0
-    SF-TOGGLE     _"Drop shadow"                        FALSE
+    SF-TOGGLE     _"Drop shadow"                        TRUE
     SF-COLOR      _"Shadow color"                       "black"
     SF-ADJUSTMENT _"Shadow offsrt X (-10..10 pixels)"   '(0 -10 10 1 10 0 )
     SF-ADJUSTMENT _"Shadow offsrt Y (-10..10 pixels)"   '(2 -10 10 1 10 0 )
-    SF-ADJUSTMENT _"Shadow blur radius (0-40 pixels)"   '(5 0 40 1 10 0 0)
+    SF-ADJUSTMENT _"Shadow blur radius (0-40 pixels)"   '(6 0 40 1 10 0 0)
     SF-ADJUSTMENT _"Shadow opacity (0-100%)"            '(20 0 100 1 10 0 0)
     SF-TOGGLE     _"Draw border"                        TRUE
     SF-COLOR      _"Border color"                       "black"
-    SF-ADJUSTMENT _"Border opacity (0-100%)"            '(25 0 100 1 10 0 0)
+    SF-ADJUSTMENT _"Border opacity (0-100%)"            '(20 0 100 1 10 0 0)
 )
 (script-fu-menu-register "script-fu-dx-screenshotv3" "<Image>/DX")
