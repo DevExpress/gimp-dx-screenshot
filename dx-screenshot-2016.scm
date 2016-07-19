@@ -62,40 +62,38 @@
             ; Check margins for border
             (if (= (list-ref (gimp-selection-bounds image) 1) 0)
                 (set! sel-docked-left TRUE)
-                (set! num-of-docked (+ num-of-docked 1))
-            ) (if (= (list-ref (gimp-selection-bounds image) 2) 0)
+                (set! num-of-docked (+ num-of-docked 1)) )
+            (if (= (list-ref (gimp-selection-bounds image) 2) 0)
                 (set! sel-docked-top TRUE)
-                (set! num-of-docked (+ num-of-docked 1))
-            ) (if (= (list-ref (gimp-selection-bounds image) 3) image-width)
+                (set! num-of-docked (+ num-of-docked 1)) )
+            (if (= (list-ref (gimp-selection-bounds image) 3) image-width)
                 (set! sel-docked-right TRUE)
-                (set! num-of-docked (+ num-of-docked 1))
-            ) (if (= (list-ref (gimp-selection-bounds image) 4) image-height)
+                (set! num-of-docked (+ num-of-docked 1)) )
+            (if (= (list-ref (gimp-selection-bounds image) 4) image-height)
                 (set! sel-docked-bottom TRUE)
-                (set! num-of-docked (+ num-of-docked 1))
-            )
+                (set! num-of-docked (+ num-of-docked 1)) )
 
             ; Add required margins for border (not optimal, yet self-commented)
             (if (= sel-docked-left TRUE)
                 (gimp-image-resize  image
                                     (+ (car (gimp-image-width  image)) 1)
                                        (car (gimp-image-height image))
-                                    1 0)
-            ) (if (= sel-docked-right TRUE)
+                                    1 0) )
+            (if (= sel-docked-right TRUE)
                 (gimp-image-resize  image
                                     (+ (car (gimp-image-width  image)) 1)
                                        (car (gimp-image-height image))
-                                    0 0)
-            ) (if (= sel-docked-top TRUE)
+                                    0 0) )
+            (if (= sel-docked-top TRUE)
                 (gimp-image-resize  image
                                        (car (gimp-image-width  image))
                                     (+ (car (gimp-image-height image)) 1)
-                                    0 1)
-            ) (if (= sel-docked-bottom TRUE)
+                                    0 1) )
+            (if (= sel-docked-bottom TRUE)
                 (gimp-image-resize  image
                                        (car (gimp-image-width  image))
                                     (+ (car (gimp-image-height image)) 1)
-                                    0 0)
-            )
+                                    0 0) )
             (gimp-image-select-rectangle image CHANNEL-OP-REPLACE
                         (- (list-ref (gimp-selection-bounds image) 1) 1)   ;x0
                         (- (list-ref (gimp-selection-bounds image) 2) 1)   ;y0
@@ -149,12 +147,13 @@
     (gimp-image-undo-group-end image)
     ))                                         ; --------- Border End ---------
 
+    (gimp-image-undo-group-start image)
     (if (= wavy-crop TRUE) (begin          ; --------- Wavy crop Start ---------
         (if (< 2 num-of-docked) (gimp-message "Wawy crop from 3 or more sides is not recommended!"))
-        (set! x1 (car (cdr (gimp-selection-bounds image))))
-        (set! y1 (car (cdr (cdr (gimp-selection-bounds image)))))
-        (set! x2 (car (cdr (cdr (cdr (gimp-selection-bounds image))))))
-        (set! y2 (car (cdr (cdr (cdr (cdr (gimp-selection-bounds image)))))))
+        (set! x1 (list-ref (gimp-selection-bounds image) 1))
+        (set! y1 (list-ref (gimp-selection-bounds image) 2))
+        (set! x2 (list-ref (gimp-selection-bounds image) 3))
+        (set! y2 (list-ref (gimp-selection-bounds image) 4))
         (gimp-selection-none image) ;remove selection if one exists
 
         (set! points (cons-array (* (+ (* 2 (- x2 x1)) (* 2 (- y2 y1))) 2) 'double)) ; amount of points for points array
@@ -231,12 +230,13 @@
                          (list-ref (cdr (gimp-selection-bounds image)) 1))
         (if (= selection-exists TRUE) (gimp-selection-load user-selection))
     ))
+    (gimp-image-undo-group-end image)
     (if (= selection-exists TRUE)
         (gimp-image-remove-channel image user-selection)
     )
 
     (if (= drop-shadow TRUE) (begin                 ; --------- Shadow ---------
-        (gimp-image-undo-group-start image)
+    (gimp-image-undo-group-start image)
 
         (script-fu-drop-shadow  image background-layer
                                 shadow-offset-x
@@ -251,11 +251,12 @@
         (gimp-image-lower-item-to-bottom image shadow-layer)
         (gimp-image-raise-item image shadow-layer) ; Border, Shadow, Background
 
-        (gimp-image-undo-group-end image)
+    (gimp-image-undo-group-end image)
     ))                                          ; --------- Shadow End ---------
 
-    (gimp-image-undo-group-start image)
+    (gimp-image-resize-to-layers image)
 
+    (gimp-image-undo-group-start image)
         (gimp-selection-none image)
         (set! white-layer  (car (gimp-layer-new image
                                            (car (gimp-image-width image))
