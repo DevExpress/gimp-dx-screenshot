@@ -111,32 +111,38 @@
 
         (set! bordered-selection (car (gimp-selection-save image)))
 
-        (set! border-layer (car (gimp-layer-new image image-width image-height
+        (set! x1 (list-ref (gimp-selection-bounds image) 1))
+        (set! y1 (list-ref (gimp-selection-bounds image) 2))
+        (set! x2 (list-ref (gimp-selection-bounds image) 3))
+        (set! y2 (list-ref (gimp-selection-bounds image) 4))
+
+        (if (= sel-docked-left   TRUE) (set! x1 (+ x1 1)))
+        (if (= sel-docked-right  TRUE) (set! x2 (- x2 1)))
+        (if (= sel-docked-top    TRUE) (set! y1 (+ y1 1)))
+        (if (= sel-docked-bottom TRUE) (set! y2 (- y2 1)))
+
+        (gimp-image-select-rectangle image CHANNEL-OP-SUBTRACT x1 y1
+                                                        (- x2 x1) (- y2 y1))
+
+        ; Selection may disappear (if (= num-of-docked 4))
+        (if (= (car (gimp-selection-bounds image)) TRUE) (begin
+            (set! border-layer (car (gimp-layer-new image image-width
+                                                image-height
                                                 RGBA-IMAGE "Border"
                                                 border-opacity NORMAL-MODE)))
-        (gimp-drawable-fill border-layer TRANSPARENT-FILL)
-        (gimp-image-insert-layer image border-layer 0 ; no parent
+            (gimp-drawable-fill border-layer TRANSPARENT-FILL)
+            (gimp-image-insert-layer image border-layer 0 ; no parent
                 (- (car (gimp-image-get-layers image)) 1)) ; The pre-last layer
 
-        ;(set! x1 )
-
-        (gimp-image-select-rectangle image CHANNEL-OP-SUBTRACT
-                        (+ (list-ref (gimp-selection-bounds image) 1) 1)  ;x0
-                        (+ (list-ref (gimp-selection-bounds image) 2) 1)  ;y0
-                        (-  (list-ref (gimp-selection-bounds image) 3)
-                            (list-ref (gimp-selection-bounds image) 1) 2) ;w
-                        (-  (list-ref (gimp-selection-bounds image) 4)
-                            (list-ref (gimp-selection-bounds image) 2) 2) ;h
-        ) ; (gimp-selection-border sucks)
-
-        (gimp-context-set-foreground border-color)
-        (gimp-edit-bucket-fill-full border-layer FG-BUCKET-FILL NORMAL-MODE
-                                    100   ; opacity
-                                    0     ; threshold
-                                    FALSE ; sample-merged
-                                    TRUE  ; fill-transparent
-                                    SELECT-CRITERION-COMPOSITE 0 0)
-        (plug-in-autocrop-layer RUN-NONINTERACTIVE image border-layer)
+            (gimp-context-set-foreground border-color)
+            (gimp-edit-bucket-fill-full border-layer FG-BUCKET-FILL NORMAL-MODE
+                                        100   ; opacity
+                                        0     ; threshold
+                                        FALSE ; sample-merged
+                                        TRUE  ; fill-transparent
+                                        SELECT-CRITERION-COMPOSITE 0 0)
+            (plug-in-autocrop-layer RUN-NONINTERACTIVE image border-layer)
+        ))
         (gimp-selection-load bordered-selection) ; Load border selection
         (gimp-image-remove-channel image bordered-selection) ; Remove it
         (gimp-image-set-active-layer image background-layer)
