@@ -41,6 +41,8 @@
 ;BEGIN -----------------------------------------------------------
     (if (= is-GIF TRUE) (gimp-image-convert-rgb image)) ; No opacity in INDEXED
     (gimp-image-set-active-layer image background-layer) ; The main layer
+    (if (= selection-exists TRUE)
+        (set! user-selection (car (gimp-selection-save image)))) ;Save selection
 
     (if (= draw-border TRUE) (begin           ; --------- Border Start ---------
     (gimp-image-undo-group-start image)
@@ -56,7 +58,6 @@
 
             (gimp-selection-all image)
         ) (begin  ; Else (selection exists)
-            (set! user-selection (car (gimp-selection-save image))) ; Save it
 
             ; Check margins for border
             (if (= (list-ref (gimp-selection-bounds image) 1) 0)
@@ -117,6 +118,8 @@
         (gimp-image-insert-layer image border-layer 0 ; no parent
                 (- (car (gimp-image-get-layers image)) 1)) ; The pre-last layer
 
+        ;(set! x1 )
+
         (gimp-image-select-rectangle image CHANNEL-OP-SUBTRACT
                         (+ (list-ref (gimp-selection-bounds image) 1) 1)  ;x0
                         (+ (list-ref (gimp-selection-bounds image) 2) 1)  ;y0
@@ -133,7 +136,9 @@
                                     FALSE ; sample-merged
                                     TRUE  ; fill-transparent
                                     SELECT-CRITERION-COMPOSITE 0 0)
+        (plug-in-autocrop-layer RUN-NONINTERACTIVE image border-layer)
         (gimp-selection-load bordered-selection) ; Load border selection
+        (gimp-image-remove-channel image bordered-selection) ; Remove it
         (gimp-image-set-active-layer image background-layer)
     (gimp-image-undo-group-end image)
     ))                                         ; --------- Border End ---------
@@ -207,7 +212,9 @@
         ; Actual cropping
         (gimp-image-select-polygon image CHANNEL-OP-ADD point points)
         (gimp-selection-invert image)
-        (gimp-edit-clear drawable)
+        (gimp-edit-clear background-layer)
+        (gimp-selection-invert image)
+        (plug-in-autocrop-layer RUN-NONINTERACTIVE image background-layer)
     ) (begin ; Else (= wavy-crop FALSE)
         (gimp-image-crop image ; Crop to selection
                          (- (list-ref (cdr (gimp-selection-bounds image)) 2)
@@ -216,9 +223,11 @@
                             (list-ref (cdr (gimp-selection-bounds image)) 1))
                          (list-ref (cdr (gimp-selection-bounds image)) 0)
                          (list-ref (cdr (gimp-selection-bounds image)) 1))
+        (if (= selection-exists TRUE) (gimp-selection-load user-selection))
     ))
-
-    (if (= selection-exists TRUE) (gimp-selection-load user-selection))
+    (if (= selection-exists TRUE)
+        (gimp-image-remove-channel image user-selection)
+    )
 
     (if (= drop-shadow TRUE) (begin                 ; --------- Shadow ---------
         (gimp-image-undo-group-start image)
@@ -240,6 +249,7 @@
     ))                                          ; --------- Shadow End ---------
 
     (gimp-image-undo-group-start image)
+
         (gimp-selection-none image)
         (set! white-layer  (car (gimp-layer-new image
                                            (car (gimp-image-width image))
@@ -248,9 +258,6 @@
         (gimp-drawable-fill white-layer WHITE-FILL)
         (gimp-image-insert-layer image white-layer 0
                                  (car (gimp-image-get-layers image))) ; To end
-        (if (= selection-exists TRUE)
-            (gimp-image-remove-channel image user-selection)); Clean up
-        (gimp-image-remove-channel image bordered-selection) ; channels
     (gimp-image-undo-group-end image)
 
     (if (= is-GIF TRUE) (begin
@@ -270,8 +277,8 @@
         (gimp-image-undo-group-end image)
 
         (gimp-image-convert-indexed image NO-DITHER MAKE-PALETTE
-                                    255 TRUE TRUE ""))
-    )
+                                    255 TRUE TRUE "")
+    ))
 ;END -----------------------------------------------------------
 (gimp-displays-flush)
 (gimp-context-pop)
