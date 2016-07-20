@@ -11,7 +11,8 @@
                                     border-opacity
                                     wavy-crop
                                     amplitude
-                                    reverse-phase)
+                                    reverse-phase
+                                    history-type)
 (let* (
         (image-width (car (gimp-image-width image)))
         (image-height (car (gimp-image-height image)))
@@ -38,15 +39,25 @@
 
     )
 (gimp-context-push)
-;BEGIN -----------------------------------------------------------
-    (if (= is-GIF TRUE) (gimp-image-convert-rgb image)) ; No opacity in INDEXED
-    (gimp-image-set-active-layer image background-layer) ; The main layer
-    (if (= user-selection-exists FALSE) (gimp-selection-all image))
-    (set! initial-selection (car (gimp-selection-save image)))
 
+(define (layer-resize layer bounds) ; It was hard to find out how it actually works
+    (gimp-layer-resize layer (- (list-ref bounds 2) (list-ref bounds 0))
+                             (- (list-ref bounds 3) (list-ref bounds 1))
+                             (- 0 (list-ref bounds 0))
+                             (- 0 (list-ref bounds 1)) )
+)
+
+(if (= history-type 0) (gimp-image-undo-group-start image))
+;BEGIN -----------------------------------------------------------
+    (if (= history-type 1) (gimp-image-undo-group-start image))
+        (if (= is-GIF TRUE) (gimp-image-convert-rgb image)) ; No opacity in INDEXED
+        (gimp-image-set-active-layer image background-layer) ; The main layer
+        (if (= user-selection-exists FALSE) (gimp-selection-all image))
+        (set! initial-selection (car (gimp-selection-save image)))
+    (if (= history-type 1) (gimp-image-undo-group-end image))
 
     (if (= draw-border TRUE) (begin           ; --------- Border Start ---------
-    (gimp-image-undo-group-start image)
+    (if (= history-type 1) (gimp-image-undo-group-start image))
         ; Check margins for border
         (if (= user-selection-exists TRUE) (begin
             (if (= (list-ref (gimp-selection-bounds image) 1) 0) (begin
@@ -154,12 +165,13 @@
                                         SELECT-CRITERION-COMPOSITE 0 0)
         ))
         (gimp-selection-load bordered-selection) ; Load border selection
-        (gimp-image-remove-channel image bordered-selection) ; Remove it
-        (gimp-image-set-active-layer image background-layer)
-    (gimp-image-undo-group-end image)
+        (layer-resize border-layer ; crop layer to bordered-selection
+            (cdr (gimp-selection-bounds image)) )
+        (gimp-image-remove-channel image bordered-selection) ; No need anymore
+    (if (= history-type 1) (gimp-image-undo-group-end image))
     ))                                         ; --------- Border End ---------
 
-    (gimp-image-undo-group-start image)
+    (if (= history-type 1) (gimp-image-undo-group-start image))
     (if (= wavy-crop TRUE) (begin          ; --------- Wavy crop Start ---------
         (if (< 2 num-of-docked) (gimp-message "Wawy crop from 3 or more sides is not recommended!"))
         (set! x1 (list-ref (gimp-selection-bounds image) 1))
@@ -232,7 +244,7 @@
         (gimp-selection-invert image)
         (gimp-edit-clear background-layer)
         (gimp-selection-invert image)
-        (plug-in-autocrop-layer RUN-NONINTERACTIVE image background-layer)
+        (plug-in-autocrop-layer RUN-NONINTERACTIVE image background-layer) ; May cause problems !
     ) (begin ; (= wavy-crop FALSE)               ; -------- Simple crop --------
         (gimp-image-crop image
                          (- (list-ref (cdr (gimp-selection-bounds image)) 2)
@@ -243,11 +255,11 @@
                          (list-ref (cdr (gimp-selection-bounds image)) 1))
         (gimp-selection-load initial-selection)
     ))
-    (gimp-image-undo-group-end image)
     (gimp-image-remove-channel image initial-selection)
+    (if (= history-type 1) (gimp-image-undo-group-end image))
 
     (if (= drop-shadow TRUE) (begin                 ; --------- Shadow ---------
-    (gimp-image-undo-group-start image)
+    (if (= history-type 1) (gimp-image-undo-group-start image))
 
         (script-fu-drop-shadow  image background-layer
                                 shadow-offset-x
@@ -262,12 +274,12 @@
         (gimp-image-lower-item-to-bottom image shadow-layer)
         (gimp-image-raise-item image shadow-layer) ; Border, Shadow, Background
 
-    (gimp-image-undo-group-end image)
+    (if (= history-type 1) (gimp-image-undo-group-end image))
     ))                                          ; --------- Shadow End ---------
 
     (gimp-image-resize-to-layers image)
 
-    (gimp-image-undo-group-start image)
+    (if (= history-type 1) (gimp-image-undo-group-start image))
         (gimp-selection-none image)
         (set! white-layer  (car (gimp-layer-new image
                                            (car (gimp-image-width image))
@@ -276,10 +288,10 @@
         (gimp-drawable-fill white-layer WHITE-FILL)
         (gimp-image-insert-layer image white-layer 0
                                  (car (gimp-image-get-layers image))) ; To end
-    (gimp-image-undo-group-end image)
+    (if (= history-type 1) (gimp-image-undo-group-end image))
 
-    (if (= is-GIF TRUE) (begin
-        (gimp-image-undo-group-start image) ; --------- Merge layers ----------
+    (if (= is-GIF TRUE) (begin ; --------- Merge layers ----------
+        (if (= history-type 1) (gimp-image-undo-group-start image))
             (set! border-layer (car (gimp-image-merge-down image border-layer
                                                            EXPAND-AS-NECESSARY))
             ) ; 1. Border & Background -> Border
@@ -292,12 +304,13 @@
             ) ; 3. Border & White -> Background
             (gimp-item-set-name background-layer
                                 background-name) ; Important! Recovers duration
-        (gimp-image-undo-group-end image)
+        (if (= history-type 1) (gimp-image-undo-group-end image))
 
         (gimp-image-convert-indexed image NO-DITHER MAKE-PALETTE
                                     255 TRUE TRUE "")
     ))
 ;END -----------------------------------------------------------
+(if (= history-type 0) (gimp-image-undo-group-end image))
 (gimp-displays-flush)
 (gimp-context-pop)
 )) ;let, define
@@ -322,7 +335,7 @@
     SF-ADJUSTMENT _"Border opacity (0-100%)"            '(20 0 100 1 10 0 0)
     SF-TOGGLE     _"Make wavy crop"                     TRUE
     SF-ADJUSTMENT _"Waves strength (0 - calm, 10 - tsunami)" '(3 0 10 1 0 0)
-	SF-TOGGLE     _"Reverse wave phase"       			FALSE
-
+	SF-TOGGLE     _"Reverse wave phase"                 FALSE
+    SF-OPTION     _"History type"                       '("One step" "Several steps" "Verbose")
 )
 (script-fu-menu-register "script-fu-dx-screenshotv3" "<Image>/DX")
