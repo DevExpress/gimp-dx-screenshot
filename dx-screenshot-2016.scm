@@ -39,14 +39,6 @@
 
     )
 (gimp-context-push)
-
-(define (layer-resize layer bounds) ; It was hard to find out how it actually works
-    (gimp-layer-resize layer (- (list-ref bounds 2) (list-ref bounds 0))
-                             (- (list-ref bounds 3) (list-ref bounds 1))
-                             (- 0 (list-ref bounds 0))
-                             (- 0 (list-ref bounds 1)) )
-)
-
 (if (= history-type 0) (gimp-image-undo-group-start image))
 ;BEGIN -----------------------------------------------------------
     (if (= history-type 1) (gimp-image-undo-group-start image))
@@ -163,17 +155,26 @@
                                         FALSE ; sample-merged
                                         TRUE  ; fill-transparent
                                         SELECT-CRITERION-COMPOSITE 0 0)
+
+            (gimp-layer-resize border-layer ;crop border-layer to bordered-selection
+                (-  (list-ref (cdr (gimp-selection-bounds image)) 2)
+                    (list-ref (cdr (gimp-selection-bounds image)) 0) )
+                (-  (list-ref (cdr (gimp-selection-bounds image)) 3)
+                    (list-ref (cdr (gimp-selection-bounds image)) 1) )
+                (- 0 (list-ref (cdr (gimp-selection-bounds image)) 0))
+                (- 0 (list-ref (cdr (gimp-selection-bounds image)) 1)) )
         ))
         (gimp-selection-load bordered-selection) ; Load border selection
-        (layer-resize border-layer ; crop layer to bordered-selection
-            (cdr (gimp-selection-bounds image)) )
-        (gimp-image-remove-channel image bordered-selection) ; No need anymore
+        (gimp-image-remove-channel image bordered-selection) ; And drop saved
     (if (= history-type 1) (gimp-image-undo-group-end image))
     ))                                         ; --------- Border End ---------
 
     (if (= history-type 1) (gimp-image-undo-group-start image))
     (if (= wavy-crop TRUE) (begin          ; --------- Wavy crop Start ---------
-        (if (< 2 num-of-docked) (gimp-message "Wawy crop from 3 or more sides is not recommended!"))
+        (if (< num-of-docked 2)
+            (gimp-message (string-append
+                "Wawy crop from 3 or more sides is not recommended!\n"
+                "Wavy-cropped " (number->string (- 4 num-of-docked)) " sides")))
         (set! x1 (list-ref (gimp-selection-bounds image) 1))
         (set! y1 (list-ref (gimp-selection-bounds image) 2))
         (set! x2 (list-ref (gimp-selection-bounds image) 3))
@@ -242,9 +243,10 @@
         (gimp-selection-load initial-selection)
         (gimp-image-select-polygon image CHANNEL-OP-ADD point points)
         (gimp-selection-invert image)
-        (gimp-edit-clear background-layer)
+        (gimp-edit-clear background-layer) ; clears the area
         (gimp-selection-invert image)
-        (plug-in-autocrop-layer RUN-NONINTERACTIVE image background-layer) ; May cause problems !
+        (gimp-image-set-active-layer image background-layer) ; Obligatory !!!!
+        (plug-in-autocrop-layer RUN-NONINTERACTIVE image background-layer)
     ) (begin ; (= wavy-crop FALSE)               ; -------- Simple crop --------
         (gimp-image-crop image
                          (- (list-ref (cdr (gimp-selection-bounds image)) 2)
@@ -260,7 +262,6 @@
 
     (if (= drop-shadow TRUE) (begin                 ; --------- Shadow ---------
     (if (= history-type 1) (gimp-image-undo-group-start image))
-
         (script-fu-drop-shadow  image background-layer
                                 shadow-offset-x
                                 shadow-offset-y
