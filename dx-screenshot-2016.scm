@@ -48,27 +48,27 @@
         (set! initial-selection (car (gimp-selection-save image)))
     (if (= history-type 1) (gimp-image-undo-group-end image))
 
+    ; Check margins for border
+    (if (= user-selection-exists TRUE) (begin
+        (if (= (list-ref (gimp-selection-bounds image) 1) 0) (begin
+            (set! sel-docked-left TRUE)
+            (set! num-of-docked (+ num-of-docked 1)) ))
+        (if (= (list-ref (gimp-selection-bounds image) 2) 0) (begin
+            (set! sel-docked-top TRUE)
+            (set! num-of-docked (+ num-of-docked 1)) ))
+        (if (= (list-ref (gimp-selection-bounds image) 3) image-width) (begin
+            (set! sel-docked-right TRUE)
+            (set! num-of-docked (+ num-of-docked 1)) ))
+        (if (= (list-ref (gimp-selection-bounds image) 4) image-height) (begin
+            (set! sel-docked-bottom TRUE)
+            (set! num-of-docked (+ num-of-docked 1)) ))
+
+        ; If the entire image is selected, assume no selection
+        (if (= num-of-docked 4) (set! user-selection-exists FALSE))
+    ))
+
     (if (= draw-border TRUE) (begin           ; --------- Border Start ---------
     (if (= history-type 1) (gimp-image-undo-group-start image))
-        ; Check margins for border
-        (if (= user-selection-exists TRUE) (begin
-            (if (= (list-ref (gimp-selection-bounds image) 1) 0) (begin
-                (set! sel-docked-left TRUE)
-                (set! num-of-docked (+ num-of-docked 1)) ))
-            (if (= (list-ref (gimp-selection-bounds image) 2) 0) (begin
-                (set! sel-docked-top TRUE)
-                (set! num-of-docked (+ num-of-docked 1)) ))
-            (if (= (list-ref (gimp-selection-bounds image) 3) image-width) (begin
-                (set! sel-docked-right TRUE)
-                (set! num-of-docked (+ num-of-docked 1)) ))
-            (if (= (list-ref (gimp-selection-bounds image) 4) image-height) (begin
-                (set! sel-docked-bottom TRUE)
-                (set! num-of-docked (+ num-of-docked 1)) ))
-
-            ; If the entire image is selected, assume no selection
-            (if (= num-of-docked 4) (set! user-selection-exists FALSE))
-        ))
-
         ; Fix margins for border
         (if (= user-selection-exists TRUE) (begin
             ; Add required margins for border
@@ -323,20 +323,20 @@
     "DevExpress Inc."
     "7/15/2016"
     "RGB* INDEXED* GRAY*"
-    SF-IMAGE      "Image"                               0
-    SF-DRAWABLE   "Drawable"                            0
-    SF-TOGGLE     _"Drop shadow"                        TRUE
-    SF-COLOR      _"Shadow color"                       "black"
-    SF-ADJUSTMENT _"Shadow offsrt X (-10..10 pixels)"   '(0 -10 10 1 10 0 )
-    SF-ADJUSTMENT _"Shadow offsrt Y (-10..10 pixels)"   '(2 -10 10 1 10 0 )
-    SF-ADJUSTMENT _"Shadow blur radius (0-40 pixels)"   '(6 0 40 1 10 0 0)
-    SF-ADJUSTMENT _"Shadow opacity (0-100%)"            '(20 0 100 1 10 0 0)
-    SF-TOGGLE     _"Draw border"                        TRUE
-    SF-COLOR      _"Border color"                       "black"
-    SF-ADJUSTMENT _"Border opacity (0-100%)"            '(20 0 100 1 10 0 0)
-    SF-TOGGLE     _"Make wavy crop"                     TRUE
-    SF-ADJUSTMENT _"Waves strength (0 - calm, 10 - tsunami)" '(3 0 10 1 0 0)
-	SF-TOGGLE     _"Reverse wave phase"                 FALSE
-    SF-OPTION     _"History type"                       '("One step" "Several steps" "Verbose")
+    SF-IMAGE      "Image"                                   0
+    SF-DRAWABLE   "Drawable"                                0
+    SF-TOGGLE     _"Drop shadow"                            TRUE
+    SF-COLOR      _"Shadow color"                           "black"
+    SF-ADJUSTMENT _"Shadow offsrt X (-10..10 pixels)"       '(0 -10 10 1 10 0 )
+    SF-ADJUSTMENT _"Shadow offsrt Y (-10..10 pixels)"       '(2 -10 10 1 10 0 )
+    SF-ADJUSTMENT _"Shadow blur radius (0-40 pixels)"       '(6 0 40 1 10 0 0)
+    SF-ADJUSTMENT _"Shadow opacity (0-100%)"                '(20 0 100 1 10 0 0)
+    SF-TOGGLE     _"Draw border"                            TRUE
+    SF-COLOR      _"Border color"                           "black"
+    SF-ADJUSTMENT _"Border opacity (0-100%)"                '(20 0 100 1 10 0 0)
+    SF-TOGGLE     _"Make wavy crop (don't use for GIFs)"    TRUE
+    SF-ADJUSTMENT _"Waves strength (0-calm, 10-tsunami)"    '(3 0 10 1 0 0)
+	SF-TOGGLE     _"Reverse wave phase"                     FALSE
+    SF-OPTION     _"History type"        '("One step" "Several steps" "Verbose")
 )
 (script-fu-menu-register "script-fu-dx-screenshotv3" "<Image>/DX")
