@@ -17,7 +17,7 @@
         (image-height (car (gimp-image-height image)))
 
         (is-GIF (car (gimp-drawable-is-indexed drawable)))
-        (selection-exists (car (gimp-selection-bounds image)))
+        (user-selection-exists (car (gimp-selection-bounds image)))
 
         (border-layer 0)
         (background-layer (vector-ref (car (cdr (gimp-image-get-layers image)))
@@ -28,7 +28,7 @@
         (white-layer 0)
 
         (bordered-selection 0)
-        (user-selection 0)
+        (initial-selection 0)
 
         (sel-docked-left FALSE) (sel-docked-right FALSE)
         (sel-docked-top FALSE) (sel-docked-bottom FALSE)
@@ -41,38 +41,35 @@
 ;BEGIN -----------------------------------------------------------
     (if (= is-GIF TRUE) (gimp-image-convert-rgb image)) ; No opacity in INDEXED
     (gimp-image-set-active-layer image background-layer) ; The main layer
-    (if (= selection-exists TRUE)
-        (set! user-selection (car (gimp-selection-save image)))) ;Save selection
+    (if (= user-selection-exists FALSE) (gimp-selection-all image))
+    (set! initial-selection (car (gimp-selection-save image)))
+
 
     (if (= draw-border TRUE) (begin           ; --------- Border Start ---------
     (gimp-image-undo-group-start image)
-
-        ; Selection fix
-        (if (= selection-exists FALSE) (begin
-            (gimp-image-resize image (+ image-width 2) (+ image-height 2) 1 1)
-
-            (set! image-width (+ image-width 2))   ; Update image
-            (set! image-height (+ image-height 2)) ; demendions
-
-            (set! wavy-crop FALSE) ; Disable wavy-cropper
-
-            (gimp-selection-all image)
-        ) (begin  ; Else (selection exists)
-
-            ; Check margins for border
-            (if (= (list-ref (gimp-selection-bounds image) 1) 0)
+        ; Check margins for border
+        (if (= user-selection-exists TRUE) (begin
+            (if (= (list-ref (gimp-selection-bounds image) 1) 0) (begin
                 (set! sel-docked-left TRUE)
-                (set! num-of-docked (+ num-of-docked 1)) )
-            (if (= (list-ref (gimp-selection-bounds image) 2) 0)
+                (set! num-of-docked (+ num-of-docked 1)) ))
+            (if (= (list-ref (gimp-selection-bounds image) 2) 0) (begin
                 (set! sel-docked-top TRUE)
-                (set! num-of-docked (+ num-of-docked 1)) )
-            (if (= (list-ref (gimp-selection-bounds image) 3) image-width)
+                (set! num-of-docked (+ num-of-docked 1)) ))
+            (if (= (list-ref (gimp-selection-bounds image) 3) image-width) (begin
                 (set! sel-docked-right TRUE)
-                (set! num-of-docked (+ num-of-docked 1)) )
-            (if (= (list-ref (gimp-selection-bounds image) 4) image-height)
+                (set! num-of-docked (+ num-of-docked 1)) ))
+            (if (= (list-ref (gimp-selection-bounds image) 4) image-height) (begin
                 (set! sel-docked-bottom TRUE)
-                (set! num-of-docked (+ num-of-docked 1)) )
+                (set! num-of-docked (+ num-of-docked 1)) ))
+            ; If the entire image is selected, assume no selection
+            (if (= num-of-docked 4) (begin
+                (set! user-selection-exists FALSE)
+            ))
 
+        ))
+
+        ; Fix margins for border
+        (if (= user-selection-exists TRUE) (begin
             ; Add required margins for border (not optimal, yet self-commented)
             (if (= sel-docked-left TRUE)
                 (gimp-image-resize  image
@@ -105,6 +102,18 @@
 
             (set! image-width (car (gimp-image-width image)))   ; Updare image
             (set! image-height (car (gimp-image-height image))) ; dimensions
+        ) (begin ; Else
+            ; Simply expand image and selection by 1px
+            (gimp-image-resize image (+ image-width 2) (+ image-height 2) 1 1)
+            (gimp-selection-all image)
+
+            (set! image-width (+ image-width 2))   ; Update image
+            (set! image-height (+ image-height 2)) ; demendions
+
+            (set! wavy-crop FALSE) ; Disable wavy-cropper
+
+            (set! sel-docked-left TRUE) (set! sel-docked-right  TRUE)
+            (set! sel-docked-top  TRUE) (set! sel-docked-bottom TRUE)
         ))
 
         (set! bordered-selection (car (gimp-selection-save image)))
@@ -122,7 +131,7 @@
         (gimp-image-select-rectangle image CHANNEL-OP-SUBTRACT x1 y1
                                                         (- x2 x1) (- y2 y1))
 
-        ; Selection may disappear (if (= num-of-docked 4))
+        ; Selection may disappear (if (= num-of-docked 0))
         (if (= (car (gimp-selection-bounds image)) TRUE) (begin
             (set! border-layer (car (gimp-layer-new image image-width
                                                 image-height
@@ -139,7 +148,6 @@
                                         FALSE ; sample-merged
                                         TRUE  ; fill-transparent
                                         SELECT-CRITERION-COMPOSITE 0 0)
-            (plug-in-autocrop-layer RUN-NONINTERACTIVE image border-layer)
         ))
         (gimp-selection-load bordered-selection) ; Load border selection
         (gimp-image-remove-channel image bordered-selection) ; Remove it
@@ -215,25 +223,24 @@
             (set! y (- y 1))
         )
         ; Actual cropping
+        (gimp-selection-load initial-selection)
         (gimp-image-select-polygon image CHANNEL-OP-ADD point points)
         (gimp-selection-invert image)
         (gimp-edit-clear background-layer)
         (gimp-selection-invert image)
         (plug-in-autocrop-layer RUN-NONINTERACTIVE image background-layer)
-    ) (begin ; Else (= wavy-crop FALSE)
-        (gimp-image-crop image ; Crop to selection
+    ) (begin ; (= wavy-crop FALSE)               ; -------- Simple crop --------
+        (gimp-image-crop image
                          (- (list-ref (cdr (gimp-selection-bounds image)) 2)
                             (list-ref (cdr (gimp-selection-bounds image)) 0))
                          (- (list-ref (cdr (gimp-selection-bounds image)) 3)
                             (list-ref (cdr (gimp-selection-bounds image)) 1))
                          (list-ref (cdr (gimp-selection-bounds image)) 0)
                          (list-ref (cdr (gimp-selection-bounds image)) 1))
-        (if (= selection-exists TRUE) (gimp-selection-load user-selection))
+        (gimp-selection-load initial-selection)
     ))
     (gimp-image-undo-group-end image)
-    (if (= selection-exists TRUE)
-        (gimp-image-remove-channel image user-selection)
-    )
+    (gimp-image-remove-channel image initial-selection)
 
     (if (= drop-shadow TRUE) (begin                 ; --------- Shadow ---------
     (gimp-image-undo-group-start image)
