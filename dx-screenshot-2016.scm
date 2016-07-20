@@ -61,16 +61,14 @@
             (if (= (list-ref (gimp-selection-bounds image) 4) image-height) (begin
                 (set! sel-docked-bottom TRUE)
                 (set! num-of-docked (+ num-of-docked 1)) ))
-            ; If the entire image is selected, assume no selection
-            (if (= num-of-docked 4) (begin
-                (set! user-selection-exists FALSE)
-            ))
 
+            ; If the entire image is selected, assume no selection
+            (if (= num-of-docked 4) (set! user-selection-exists FALSE))
         ))
 
         ; Fix margins for border
         (if (= user-selection-exists TRUE) (begin
-            ; Add required margins for border (not optimal, yet self-commented)
+            ; Add required margins for border
             (if (= sel-docked-left TRUE)
                 (gimp-image-resize  image
                                     (+ (car (gimp-image-width  image)) 1)
@@ -103,7 +101,7 @@
             (set! image-width (car (gimp-image-width image)))   ; Updare image
             (set! image-height (car (gimp-image-height image))) ; dimensions
         ) (begin ; Else
-            ; Simply expand image and selection by 1px
+            ; Simply expand the image and selection by 1px
             (gimp-image-resize image (+ image-width 2) (+ image-height 2) 1 1)
             (gimp-selection-all image)
 
@@ -123,13 +121,19 @@
         (set! x2 (list-ref (gimp-selection-bounds image) 3))
         (set! y2 (list-ref (gimp-selection-bounds image) 4))
 
-        (if (= sel-docked-left   TRUE) (set! x1 (+ x1 1)))
-        (if (= sel-docked-right  TRUE) (set! x2 (- x2 1)))
-        (if (= sel-docked-top    TRUE) (set! y1 (+ y1 1)))
-        (if (= sel-docked-bottom TRUE) (set! y2 (- y2 1)))
+        (if (= wavy-crop TRUE) (begin
+            ; Add margins to only docked sides
+            (if (= sel-docked-left   TRUE) (set! x1 (+ x1 1)))
+            (if (= sel-docked-right  TRUE) (set! x2 (- x2 1)))
+            (if (= sel-docked-top    TRUE) (set! y1 (+ y1 1)))
+            (if (= sel-docked-bottom TRUE) (set! y2 (- y2 1)))
+        ) (begin ; Else
+            (set! x1 (+ x1 1)) (set! x2 (- x2 1)) ; Add all
+            (set! y1 (+ y1 1)) (set! y2 (- y2 1)) ; margins
+        ))
 
-        (gimp-image-select-rectangle image CHANNEL-OP-SUBTRACT x1 y1
-                                                        (- x2 x1) (- y2 y1))
+        (gimp-image-select-rectangle image ; Our cool gimp-selection-border
+                                CHANNEL-OP-SUBTRACT x1 y1 (- x2 x1) (- y2 y1))
 
         ; Selection may disappear (if (= num-of-docked 0))
         (if (= (car (gimp-selection-bounds image)) TRUE) (begin
