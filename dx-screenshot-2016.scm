@@ -318,10 +318,10 @@
 
 (script-fu-register "script-fu-dx-screenshotv3"
     _"_Screenshot processing 2016..."
-    _"Draws border, adds modern shadow and makes wavy crop."
+    _"Draws border, adds modern shadow and makes wavy crop. Even in GIFs."
     "Vladislav Glagolev <vladislav.glagolev@devexpress.com>, Konstantin Beliakov <Konstantin.Belyakov@devexpress.com>"
     "DevExpress Inc."
-    "7/15/2016"
+    "7/21/2016"
     "RGB* INDEXED* GRAY*"
     SF-IMAGE      "Image"                                   0
     SF-DRAWABLE   "Drawable"                                0
@@ -330,10 +330,10 @@
     SF-ADJUSTMENT _"Shadow offsrt X (-10..10 pixels)"       '(0 -10 10 1 10 0 )
     SF-ADJUSTMENT _"Shadow offsrt Y (-10..10 pixels)"       '(2 -10 10 1 10 0 )
     SF-ADJUSTMENT _"Shadow blur radius (0-40 pixels)"       '(6 0 40 1 10 0 0)
-    SF-ADJUSTMENT _"Shadow opacity (0-100%)"                '(20 0 100 1 10 0 0)
+    SF-ADJUSTMENT _"Shadow opacity (0-100%)"                '(22 0 100 1 10 0 0)
     SF-TOGGLE     _"Draw border"                            TRUE
     SF-COLOR      _"Border color"                           "black"
-    SF-ADJUSTMENT _"Border opacity (0-100%)"                '(20 0 100 1 10 0 0)
+    SF-ADJUSTMENT _"Border opacity (0-100%)"                '(12 0 100 1 10 0 0)
     SF-TOGGLE     _"Make wavy crop (don't use for GIFs)"    TRUE
     SF-ADJUSTMENT _"Waves strength (0-calm, 10-tsunami)"    '(3 0 10 1 0 0)
 	SF-TOGGLE     _"Reverse wave phase"                     FALSE
