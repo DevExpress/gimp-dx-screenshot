@@ -193,7 +193,7 @@
             (if (= sel-docked-top TRUE)
                 (aset points point y1) ;y
             ; else
-                (aset points point (+ y1 (* (* (- x2 x1) amplitude ) (sin (+ phase (* 6.2832 (/ (- x x1) (- x2 x1)))))))) ;y
+                (aset points point (+ (- 0 1) y1 (* (* (- x2 x1) amplitude ) (sin (+ phase (* 6.2832 (/ (- x x1) (- x2 x1)))))))) ;y
             )
             (set! point (+ point 1))
             (set! x (+ x 1))
@@ -203,7 +203,7 @@
             (if (= sel-docked-right TRUE)
                 (aset points point x2) ;x
             ; else
-                (aset points point (+ x2 (* (* (- y2 y1) amplitude) (sin (+ phase (* -6.2832 (/ (- y y1) (- y2 y1)))))))) ;x
+                (aset points point (+ 1 x2 (* (* (- y2 y1) amplitude) (sin (+ phase (* -6.2832 (/ (- y y1) (- y2 y1)))))))) ;x
             )
             (set! point (+ point 1))
             (aset points point y) ;y
@@ -217,7 +217,7 @@
             (if (= sel-docked-bottom TRUE)
                 (aset points point y2)
             ; else
-                (aset points point (+ y2 (* (* (- x2 x1) amplitude) (sin (+ phase (* 6.2832 (/ (- x x1) (- x2 x1)))))))) ;y
+                (aset points point (+ 1 y2 (* (* (- x2 x1) amplitude) (sin (+ phase (* 6.2832 (/ (- x x1) (- x2 x1)))))))) ;y
             )
             (set! point (+ point 1))
             (set! x (- x 1))
@@ -227,7 +227,7 @@
             (if (= sel-docked-left TRUE)
                 (aset points point x1)
             ; else
-                (aset points point (+ x1 (* (* (- y2 y1) amplitude) (sin (+ phase (* -6.2832 (/ (- y y1) (- y2 y1))))))))
+                (aset points point (+ (- 0 1) x1 (* (* (- y2 y1) amplitude) (sin (+ phase (* -6.2832 (/ (- y y1) (- y2 y1))))))))
             )
             (set! point (+ point 1))
             (aset points point y)
