@@ -44,7 +44,9 @@
     (if (= history-type 1) (gimp-image-undo-group-start image))
         (if (= is-GIF TRUE) (gimp-image-convert-rgb image)) ; No opacity in INDEXED
         (gimp-image-set-active-layer image background-layer) ; The main layer
-        (if (= user-selection-exists FALSE) (gimp-selection-all image))
+        (if (= user-selection-exists FALSE) (begin
+            (set! wavy-crop FALSE)
+            (gimp-selection-all image)))
         (set! initial-selection (car (gimp-selection-save image)))
     (if (= history-type 1) (gimp-image-undo-group-end image))
 
@@ -111,8 +113,6 @@
             (set! image-width (+ image-width 2))   ; Update image
             (set! image-height (+ image-height 2)) ; demendions
 
-            (set! wavy-crop FALSE) ; Disable wavy-cropper
-
             (set! sel-docked-left TRUE) (set! sel-docked-right  TRUE)
             (set! sel-docked-top  TRUE) (set! sel-docked-bottom TRUE)
         ))
@@ -164,13 +164,12 @@
                 (- 0 (list-ref (cdr (gimp-selection-bounds image)) 0))
                 (- 0 (list-ref (cdr (gimp-selection-bounds image)) 1)) )
         ))
-        (gimp-selection-load bordered-selection) ; Load border selection
-        (gimp-image-remove-channel image bordered-selection) ; And drop saved
     (if (= history-type 1) (gimp-image-undo-group-end image))
     ))                                         ; --------- Border End ---------
 
     (if (= history-type 1) (gimp-image-undo-group-start image))
     (if (= wavy-crop TRUE) (begin          ; --------- Wavy crop Start ---------
+        (gimp-selection-load initial-selection)
         (if (< num-of-docked 2)
             (gimp-message (string-append
                 "Wawy crop from 3 or more sides is not recommended!\n"
@@ -179,7 +178,6 @@
         (set! y1 (list-ref (gimp-selection-bounds image) 2))
         (set! x2 (list-ref (gimp-selection-bounds image) 3))
         (set! y2 (list-ref (gimp-selection-bounds image) 4))
-        (gimp-selection-none image) ;remove selection if one exists
 
         (set! points (cons-array (* (+ (* 2 (- x2 x1)) (* 2 (- y2 y1))) 2) 'double)) ; amount of points for points array
 
@@ -187,52 +185,49 @@
         (set! y y1)
         (set! amplitude (/ amplitude 200))
         (if (= reverse-phase TRUE) (set! phase 3.1415))
-        ; moving from top-left to top-right
+
+        ; Top border
         (while (< x x2)
             (aset points point x) ;x
             (set! point (+ point 1))
-            (if (> y1 0)
+            (if (= sel-docked-top TRUE)
+                (aset points point y1) ;y
+            ; else
                 (aset points point (+ y1 (* (* (- x2 x1) amplitude ) (sin (+ phase (* 6.2832 (/ (- x x1) (- x2 x1)))))))) ;y
-            )
-            (if (<= y1 0)
-                (aset points point 0) ;y
             )
             (set! point (+ point 1))
             (set! x (+ x 1))
         )
-        ; moving from top-right to bottom-right
+        ; Right border
         (while (< y y2)
-            (if (< x2 image-width)
+            (if (= sel-docked-right TRUE)
+                (aset points point x2) ;x
+            ; else
                 (aset points point (+ x2 (* (* (- y2 y1) amplitude) (sin (+ phase (* -6.2832 (/ (- y y1) (- y2 y1)))))))) ;x
-            )
-            (if (>= x2 image-width)
-                (aset points point image-width) ;x
             )
             (set! point (+ point 1))
             (aset points point y) ;y
             (set! point (+ point 1))
             (set! y (+ y 1))
         )
-        ; moving from bottom-right to bottom-left
+        ; Bottom border
         (while (> x x1)
             (aset points point x) ;x
             (set! point (+ point 1))
-            (if (< y2 image-height)
+            (if (= sel-docked-bottom TRUE)
+                (aset points point y2)
+            ; else
                 (aset points point (+ y2 (* (* (- x2 x1) amplitude) (sin (+ phase (* 6.2832 (/ (- x x1) (- x2 x1)))))))) ;y
-            )
-            (if (>= y2 image-height)
-                (aset points point image-height)
             )
             (set! point (+ point 1))
             (set! x (- x 1))
         )
-        ; moving from bottom-left to top-right
+        ; Left border
         (while (> y y1)
-            (if (> x1 0)
+            (if (= sel-docked-left TRUE)
+                (aset points point x1)
+            ; else
                 (aset points point (+ x1 (* (* (- y2 y1) amplitude) (sin (+ phase (* -6.2832 (/ (- y y1) (- y2 y1))))))))
-            )
-            (if (<= x1 0)
-                (aset points point 0)
             )
             (set! point (+ point 1))
             (aset points point y)
@@ -240,14 +235,15 @@
             (set! y (- y 1))
         )
         ; Actual cropping
-        (gimp-selection-load initial-selection)
-        (gimp-image-select-polygon image CHANNEL-OP-ADD point points)
+        ;(gimp-selection-load initial-selection)
+        (gimp-image-select-polygon image CHANNEL-OP-REPLACE point points)
         (gimp-selection-invert image)
         (gimp-edit-clear background-layer) ; clears the area
         (gimp-selection-invert image)
         (gimp-image-set-active-layer image background-layer) ; Obligatory !!!!
         (plug-in-autocrop-layer RUN-NONINTERACTIVE image background-layer)
     ) (begin ; (= wavy-crop FALSE)               ; -------- Simple crop --------
+        (gimp-selection-load bordered-selection)
         (gimp-image-crop image
                          (- (list-ref (cdr (gimp-selection-bounds image)) 2)
                             (list-ref (cdr (gimp-selection-bounds image)) 0))
@@ -257,6 +253,7 @@
                          (list-ref (cdr (gimp-selection-bounds image)) 1))
         (gimp-selection-load initial-selection)
     ))
+    (gimp-image-remove-channel image bordered-selection)
     (gimp-image-remove-channel image initial-selection)
     (if (= history-type 1) (gimp-image-undo-group-end image))
 
