@@ -164,8 +164,9 @@
                 (- 0 (list-ref (cdr (gimp-selection-bounds image)) 0))
                 (- 0 (list-ref (cdr (gimp-selection-bounds image)) 1)) )
         ))
-    (if (= history-type 1) (gimp-image-undo-group-end image))
-    ))                                         ; --------- Border End ---------
+    (if (= history-type 1) (gimp-image-undo-group-end image)))
+        (set! bordered-selection (car (gimp-selection-save image))) ; else
+    )                                           ; --------- Border End ---------
 
     (if (= history-type 1) (gimp-image-undo-group-start image))
     (if (= wavy-crop TRUE) (begin          ; --------- Wavy crop Start ---------
@@ -235,7 +236,6 @@
             (set! y (- y 1))
         )
         ; Actual cropping
-        ;(gimp-selection-load initial-selection)
         (gimp-image-select-polygon image CHANNEL-OP-REPLACE point points)
         (gimp-selection-invert image)
         (gimp-edit-clear background-layer) ; clears the area
@@ -251,10 +251,10 @@
                             (list-ref (cdr (gimp-selection-bounds image)) 1))
                          (list-ref (cdr (gimp-selection-bounds image)) 0)
                          (list-ref (cdr (gimp-selection-bounds image)) 1))
-        (gimp-selection-load initial-selection)
     ))
     (gimp-image-remove-channel image bordered-selection)
     (gimp-image-remove-channel image initial-selection)
+
     (if (= history-type 1) (gimp-image-undo-group-end image))
 
     (if (= drop-shadow TRUE) (begin                 ; --------- Shadow ---------
