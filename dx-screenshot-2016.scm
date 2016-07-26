@@ -9,10 +9,13 @@
                                     draw-border
                                     border-color
                                     border-opacity
-                                    wavy-crop
+                                    crop-type
                                     amplitude
                                     reverse-phase
-                                    history-type)
+                                    target
+                                    layers-type
+                                    history-type
+                                    add-white)
 (let* (
         (image-width (car (gimp-image-width image)))
         (image-height (car (gimp-image-height image)))
@@ -21,10 +24,10 @@
         (user-selection-exists (car (gimp-selection-bounds image)))
 
         (border-layer 0)
-        (background-layer (vector-ref (car (cdr (gimp-image-get-layers image)))
+        (target-layer (vector-ref (car (cdr (gimp-image-get-layers image)))
                                       (- (car (gimp-image-get-layers image)) 1)
                           )) ; The last layer
-        (background-name (car (gimp-item-get-name background-layer)))
+        (target-layer-name (car (gimp-item-get-name target-layer)))
         (shadow-layer 0)
         (white-layer 0)
 
@@ -42,13 +45,29 @@
 (if (= history-type 0) (gimp-image-undo-group-start image))
 ;BEGIN -----------------------------------------------------------
     (if (= history-type 1) (gimp-image-undo-group-start image))
-        (if (= is-GIF TRUE) (gimp-image-convert-rgb image)) ; No opacity in INDEXED
-        (gimp-image-set-active-layer image background-layer) ; The main layer
+        (if (= is-GIF TRUE) (begin
+            (gimp-image-convert-rgb image) ; No opacity in INDEXED
+            (set! layers-type 2))) ; Merge layers
+        (gimp-image-set-active-layer image target-layer) ; The main layer
         (if (= user-selection-exists FALSE) (begin
-            (set! wavy-crop FALSE)
-            (gimp-selection-all image)))
+            (if (= crop-type 0) (set! crop-type 1)) ; Disable wavy crop
+            (if (= target 0)
+                (gimp-selection-all image) ; Full image
+                (begin  ; Current layer
+                    (gimp-image-select-rectangle image CHANNEL-OP-REPLACE
+                                         (car (gimp-drawable-offsets drawable))
+                                         (cadr (gimp-drawable-offsets drawable))
+                                         (car (gimp-drawable-width drawable))
+                                         (car (gimp-drawable-height drawable)))
+                    (set! user-selection-exists TRUE)
+                    (set! target-layer drawable)
+                )
+            )
+        ))
         (set! initial-selection (car (gimp-selection-save image)))
     (if (= history-type 1) (gimp-image-undo-group-end image))
+
+    (gimp-image-lower-item-to-bottom image target-layer)
 
     ; Check margins for border
     (if (= user-selection-exists TRUE) (begin
@@ -124,7 +143,7 @@
         (set! x2 (list-ref (gimp-selection-bounds image) 3))
         (set! y2 (list-ref (gimp-selection-bounds image) 4))
 
-        (if (= wavy-crop TRUE) (begin
+        (if (= crop-type 0) (begin ; wavy-crop
             ; Add margins to only docked sides
             (if (= sel-docked-left   TRUE) (set! x1 (+ x1 1)))
             (if (= sel-docked-right  TRUE) (set! x2 (- x2 1)))
@@ -169,7 +188,7 @@
     )                                           ; --------- Border End ---------
 
     (if (= history-type 1) (gimp-image-undo-group-start image))
-    (if (= wavy-crop TRUE) (begin          ; --------- Wavy crop Start ---------
+    (if (= crop-type 0) (begin             ; --------- Wavy crop Start ---------
         (gimp-selection-load initial-selection)
         (if (< num-of-docked 2)
             (gimp-message (string-append
@@ -238,11 +257,13 @@
         ; Actual cropping
         (gimp-image-select-polygon image CHANNEL-OP-REPLACE point points)
         (gimp-selection-invert image)
-        (gimp-edit-clear background-layer) ; clears the area
+        (gimp-edit-clear target-layer) ; clears the area
         (gimp-selection-invert image)
-        (gimp-image-set-active-layer image background-layer) ; Obligatory !!!!
-        (plug-in-autocrop-layer RUN-NONINTERACTIVE image background-layer)
-    ) (begin ; (= wavy-crop FALSE)               ; -------- Simple crop --------
+        (gimp-image-set-active-layer image target-layer) ; Obligatory !!!!
+        (plug-in-autocrop-layer RUN-NONINTERACTIVE image target-layer)
+    ))
+
+    (if (= crop-type 1)(begin                    ; -------- Simple crop --------
         (gimp-selection-load bordered-selection)
         (gimp-image-crop image
                          (- (list-ref (cdr (gimp-selection-bounds image)) 2)
@@ -252,6 +273,7 @@
                          (list-ref (cdr (gimp-selection-bounds image)) 0)
                          (list-ref (cdr (gimp-selection-bounds image)) 1))
     ))
+    (if (> crop-type 0) (gimp-selection-load initial-selection))
     (gimp-image-remove-channel image bordered-selection)
     (gimp-image-remove-channel image initial-selection)
 
@@ -259,7 +281,8 @@
 
     (if (= drop-shadow TRUE) (begin                 ; --------- Shadow ---------
     (if (= history-type 1) (gimp-image-undo-group-start image))
-        (script-fu-drop-shadow  image background-layer
+        (gimp-image-set-active-layer image target-layer) ; Obligatory !!!!
+        (script-fu-drop-shadow  image target-layer
                                 shadow-offset-x
                                 shadow-offset-y
                                 shadow-blur
@@ -275,38 +298,41 @@
     (if (= history-type 1) (gimp-image-undo-group-end image))
     ))                                          ; --------- Shadow End ---------
 
-    (gimp-image-resize-to-layers image)
+    (if (< crop-type 2) (gimp-image-resize-to-layers image))
 
     (if (= history-type 1) (gimp-image-undo-group-start image))
         (gimp-selection-none image)
-        (set! white-layer  (car (gimp-layer-new image
+        (if (= add-white TRUE)(begin
+            (set! white-layer  (car (gimp-layer-new image
                                            (car (gimp-image-width image))
                                            (car (gimp-image-height image))
                                            RGBA-IMAGE "White" 100 NORMAL-MODE)))
-        (gimp-drawable-fill white-layer WHITE-FILL)
-        (gimp-image-insert-layer image white-layer 0
-                                 (car (gimp-image-get-layers image))) ; To end
+            (gimp-drawable-fill white-layer WHITE-FILL)
+            (gimp-image-insert-layer image white-layer 0
+                                (car (gimp-image-get-layers image))) ; To end
+        ))
     (if (= history-type 1) (gimp-image-undo-group-end image))
 
-    (if (= is-GIF TRUE) (begin ; --------- Merge layers ----------
+    (if (= layers-type 2) (begin ; --------- Merge layers ----------
         (if (= history-type 1) (gimp-image-undo-group-start image))
-            (set! border-layer (car (gimp-image-merge-down image border-layer
+            (set! target-layer (car (gimp-image-merge-down image border-layer
                                                            EXPAND-AS-NECESSARY))
-            ) ; 1. Border & Background -> Border
-            (set! border-layer (car (gimp-image-merge-down image border-layer
+            ) ; 1. Border & Target -> Target
+            (set! target-layer (car (gimp-image-merge-down image target-layer
                                                            EXPAND-AS-NECESSARY))
-            ) ; 2. Border & Shadow -> Border
-            (set! background-layer (car (gimp-image-merge-down image
-                                                           border-layer
-                                                           EXPAND-AS-NECESSARY))
-            ) ; 3. Border & White -> Background
-            (gimp-item-set-name background-layer
-                                background-name) ; Important! Recovers duration
+            ) ; 2. Target & Shadow -> Target
+            (if (= add-white TRUE)
+                (set! target-layer (car (gimp-image-merge-down image
+                                                       target-layer
+                                                       EXPAND-AS-NECESSARY)))
+            ) ; 3. Target & White -> Target
+            (gimp-item-set-name target-layer
+                                target-layer-name) ;Important! Recovers duration
         (if (= history-type 1) (gimp-image-undo-group-end image))
-
-        (gimp-image-convert-indexed image NO-DITHER MAKE-PALETTE
-                                    255 TRUE TRUE "")
     ))
+
+    (if (= is-GIF TRUE)(gimp-image-convert-indexed image NO-DITHER
+                            MAKE-PALETTE 255 TRUE TRUE ""))
 ;END -----------------------------------------------------------
 (if (= history-type 0) (gimp-image-undo-group-end image))
 (gimp-displays-flush)
@@ -324,16 +350,19 @@
     SF-DRAWABLE   "Drawable"                                0
     SF-TOGGLE     _"Drop shadow"                            TRUE
     SF-COLOR      _"Shadow color"                           "black"
-    SF-ADJUSTMENT _"Shadow offsrt X (-10..10 pixels)"       '(0 -10 10 1 10 0 )
-    SF-ADJUSTMENT _"Shadow offsrt Y (-10..10 pixels)"       '(2 -10 10 1 10 0 )
-    SF-ADJUSTMENT _"Shadow blur radius (0-40 pixels)"       '(6 0 40 1 10 0 0)
+    SF-ADJUSTMENT _"Shadow offsrt X (-10..10 pixels)"       '(0 -10 10 1 10 0)
+    SF-ADJUSTMENT _"Shadow offsrt Y (-10..10 pixels)"       '(2 -10 10 1 10 0)
+    SF-ADJUSTMENT _"Shadow blur radius (0..40 pixels)"      '(6 0 40 1 10 0 0)
     SF-ADJUSTMENT _"Shadow opacity (0-100%)"                '(22 0 100 1 10 0 0)
-    SF-TOGGLE     _"Draw border"                            TRUE
+    SF-TOGGLE     _"Draw border (set if not exists)"        FALSE
     SF-COLOR      _"Border color"                           "black"
     SF-ADJUSTMENT _"Border opacity (0-100%)"                '(12 0 100 1 10 0 0)
-    SF-TOGGLE     _"Make wavy crop (don't use for GIFs)"    TRUE
+    SF-OPTION     _"Crop type"       '("Wavy crop" "Rectangular crop" "No crop")
     SF-ADJUSTMENT _"Waves strength (0-calm, 10-tsunami)"    '(3 0 10 1 0 0)
 	SF-TOGGLE     _"Reverse wave phase"                     FALSE
-    SF-OPTION     _"History type"        '("One step" "Several steps" "Verbose")
+    SF-OPTION     _"Target (if no selection)"    '("Full image" "Current layer")
+    SF-OPTION     _"Layer arrangement type" '("Separate layers" "[TODO]Group" "Merge")
+    SF-OPTION     _"History type"           '("One step" "Several steps" "Verbose")
+    SF-TOGGLE     _"Add white layer"                        FALSE
 )
 (script-fu-menu-register "script-fu-dx-screenshotv3" "<Image>/DX")
