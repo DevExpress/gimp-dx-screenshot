@@ -322,6 +322,9 @@
     (if (= history-type 1) (gimp-image-undo-group-start image))
         (gimp-selection-none image)
         (if (= add-white TRUE)(begin
+            (set! white-layer ; Renew
+                (car (gimp-image-get-layer-by-name image "White")))
+            (if (>= white-layer 0) (gimp-image-remove-layer image white-layer))
             (set! white-layer  (car (gimp-layer-new image
                                            (car (gimp-image-width image))
                                            (car (gimp-image-height image))
@@ -373,7 +376,7 @@
     SF-ADJUSTMENT _"Shadow offsrt Y (-10..10 pixels)"       '(2 -10 10 1 10 0)
     SF-ADJUSTMENT _"Shadow blur radius (0..40 pixels)"      '(6 0 40 1 10 0 0)
     SF-ADJUSTMENT _"Shadow opacity (0-100%)"                '(22 0 100 1 10 0 0)
-    SF-TOGGLE     _"Draw border (set if not exists)"        FALSE
+    SF-TOGGLE     _"Draw border (set if not already exists)" FALSE
     SF-COLOR      _"Border color"                           "black"
     SF-ADJUSTMENT _"Border opacity (0-100%)"                '(12 0 100 1 10 0 0)
     SF-OPTION     _"Crop type"       '("Wavy crop" "Rectangular crop" "No crop")
