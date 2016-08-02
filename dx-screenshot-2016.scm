@@ -78,7 +78,7 @@
             (gimp-item-set-name group
                                 (string-append target-layer-name " decoration"))
             (gimp-image-insert-layer image group 0 ; no parent
-                (+ 1 (car (gimp-image-get-item-position image target-layer)) ))
+                (car (gimp-image-get-item-position image target-layer)) )
         ))
     (if (= history-type 1) (gimp-image-undo-group-end image))
 
@@ -182,7 +182,7 @@
                 (gimp-image-insert-layer image border-layer group 0)
             ; else
                 (gimp-image-insert-layer image border-layer 0 ; no parent
-                (+ 1 (car (gimp-image-get-item-position image target-layer))) ))
+                (car (gimp-image-get-item-position image target-layer)) ))
             (gimp-context-set-foreground border-color)
             (gimp-edit-bucket-fill-full border-layer FG-BUCKET-FILL NORMAL-MODE
                                         100   ; opacity
@@ -312,7 +312,7 @@
             (gimp-image-reorder-item image shadow-layer group 0)
             ; else
             (gimp-image-reorder-item image shadow-layer 0
-                (car (gimp-image-get-item-position image target-layer))))
+                (- (car (gimp-image-get-item-position image target-layer)) 1) ))
 
     (if (= history-type 1) (gimp-image-undo-group-end image))
     ))                                          ; --------- Shadow End ---------
