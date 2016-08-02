@@ -30,6 +30,7 @@
         (target-layer-name (car (gimp-item-get-name target-layer)))
         (shadow-layer 0)
         (white-layer 0)
+        (group 0)
 
         (bordered-selection 0)
         (initial-selection 0)
@@ -44,15 +45,14 @@
 (gimp-context-push)
 (if (= history-type 0) (gimp-image-undo-group-start image))
 ;BEGIN -----------------------------------------------------------
-    (if (= history-type 1) (gimp-image-undo-group-start image))
+    (if (= history-type 1) (gimp-image-undo-group-start image)) ; Prepare stuff
         (if (= is-GIF TRUE) (begin
             (gimp-image-convert-rgb image) ; No opacity in INDEXED
             (set! layers-type 2))) ; Merge layers
-        (gimp-image-set-active-layer image target-layer) ; The main layer
         (if (= user-selection-exists FALSE) (begin
             (if (= crop-type 0) (set! crop-type 1)) ; Disable wavy crop
-            (if (= target 0)
-                (gimp-selection-all image) ; Full image
+            (if (= target 0) ; Full image
+                (gimp-selection-all image)
                 (begin  ; Current layer
                     (gimp-image-select-rectangle image CHANNEL-OP-REPLACE
                                          (car (gimp-drawable-offsets drawable))
@@ -61,13 +61,26 @@
                                          (car (gimp-drawable-height drawable)))
                     (set! user-selection-exists TRUE)
                     (set! target-layer drawable)
+                    (set! target-layer-name
+                                        (car (gimp-item-get-name target-layer)))
                 )
             )
         ))
+        (gimp-image-set-active-layer image target-layer) ; The main layer
         (set! initial-selection (car (gimp-selection-save image)))
     (if (= history-type 1) (gimp-image-undo-group-end image))
 
-    (gimp-image-lower-item-to-bottom image target-layer)
+    (if (= history-type 1) (gimp-image-undo-group-start image)) ; Prepare layers
+        (if (= layers-type 0) ; doesn't work if target-layer is in the middle
+            (gimp-image-lower-item-to-bottom image target-layer))
+        (if (= layers-type 1) (begin ; Group
+            (set! group (car (gimp-layer-group-new image)))
+            (gimp-item-set-name group
+                                (string-append target-layer-name " decoration"))
+            (gimp-image-insert-layer image group 0 ; no parent
+                (+ 1 (car (gimp-image-get-item-position image target-layer)) ))
+        ))
+    (if (= history-type 1) (gimp-image-undo-group-end image))
 
     ; Check margins for border
     (if (= user-selection-exists TRUE) (begin
@@ -164,9 +177,12 @@
                                                 RGBA-IMAGE "Border"
                                                 border-opacity NORMAL-MODE)))
             (gimp-drawable-fill border-layer TRANSPARENT-FILL)
-            (gimp-image-insert-layer image border-layer 0 ; no parent
-                (- (car (gimp-image-get-layers image)) 1)) ; The pre-last layer
 
+            (if (= layers-type 1) ; Group
+                (gimp-image-insert-layer image border-layer group 0)
+            ; else
+                (gimp-image-insert-layer image border-layer 0 ; no parent
+                (+ 1 (car (gimp-image-get-item-position image target-layer))) ))
             (gimp-context-set-foreground border-color)
             (gimp-edit-bucket-fill-full border-layer FG-BUCKET-FILL NORMAL-MODE
                                         100   ; opacity
@@ -292,8 +308,11 @@
         (set! shadow-layer (car (gimp-image-get-layer-by-name image
                                                               "Drop Shadow")))
         (gimp-item-set-name shadow-layer "Shadow")
-        (gimp-image-lower-item-to-bottom image shadow-layer)
-        (gimp-image-raise-item image shadow-layer) ; Border, Shadow, Background
+        (if (= layers-type 1) ; Group
+            (gimp-image-reorder-item image shadow-layer group 0)
+            ; else
+            (gimp-image-reorder-item image shadow-layer 0
+                (car (gimp-image-get-item-position image target-layer))))
 
     (if (= history-type 1) (gimp-image-undo-group-end image))
     ))                                          ; --------- Shadow End ---------
@@ -361,8 +380,8 @@
     SF-ADJUSTMENT _"Waves strength (0-calm, 10-tsunami)"    '(3 0 10 1 0 0)
 	SF-TOGGLE     _"Reverse wave phase"                     FALSE
     SF-OPTION     _"Target (if no selection)"    '("Full image" "Current layer")
-    SF-OPTION     _"Layer arrangement type" '("Separate layers" "[TODO]Group" "Merge")
+    SF-OPTION     _"Layer arrangement type" '("Separate layers" "Group" "Merge")
     SF-OPTION     _"History type"           '("One step" "Several steps" "Verbose")
-    SF-TOGGLE     _"Add white layer"                        FALSE
+    SF-TOGGLE     _"Add white layer"                        TRUE
 )
 (script-fu-menu-register "script-fu-dx-screenshotv3" "<Image>/DX")
