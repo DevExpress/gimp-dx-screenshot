@@ -78,7 +78,9 @@
             (gimp-item-set-name group
                                 (string-append target-layer-name " decoration"))
             (gimp-image-insert-layer image group 0 ; no parent
-                (car (gimp-image-get-item-position image target-layer)) )
+                (+ (car (gimp-image-get-item-position image target-layer))
+                (if (= crop-type 2) 1 0)) ) ; If non-rect layer, the shadow is
+                                            ; filled and should be behind
         ))
     (if (= history-type 1) (gimp-image-undo-group-end image))
 
@@ -100,6 +102,10 @@
         ; If the entire image is selected, assume no selection
         (if (= num-of-docked 4) (set! user-selection-exists FALSE))
     ))
+
+    (if (and (= draw-border TRUE) (= crop-type 2)) (begin
+        (gimp-message "Non-rectangular borders are not supported")
+        (set! draw-border FALSE) ))
 
     (if (= draw-border TRUE) (begin           ; --------- Border Start ---------
     (if (= history-type 1) (gimp-image-undo-group-start image))
@@ -288,10 +294,11 @@
                             (list-ref (cdr (gimp-selection-bounds image)) 1))
                          (list-ref (cdr (gimp-selection-bounds image)) 0)
                          (list-ref (cdr (gimp-selection-bounds image)) 1))
+        (gimp-selection-load initial-selection) ; moved
     ))
-    (if (> crop-type 0) (gimp-selection-load initial-selection))
     (gimp-image-remove-channel image bordered-selection)
     (gimp-image-remove-channel image initial-selection)
+    (if (= crop-type 2) (gimp-selection-none image)) ; For complex selections
 
     (if (= history-type 1) (gimp-image-undo-group-end image))
 
@@ -312,7 +319,7 @@
             (gimp-image-reorder-item image shadow-layer group 0)
             ; else
             (gimp-image-reorder-item image shadow-layer 0
-                (- (car (gimp-image-get-item-position image target-layer)) 1) ))
+                (+ (car (gimp-image-get-item-position image target-layer)) 1) ))
 
     (if (= history-type 1) (gimp-image-undo-group-end image))
     ))                                          ; --------- Shadow End ---------
@@ -337,9 +344,12 @@
 
     (if (= layers-type 2) (begin ; --------- Merge layers ----------
         (if (= history-type 1) (gimp-image-undo-group-start image))
-            (set! target-layer (car (gimp-image-merge-down image border-layer
-                                                           EXPAND-AS-NECESSARY))
-            ) ; 1. Border & Target -> Target
+            (if (= draw-border TRUE)
+                (set! target-layer (car (gimp-image-merge-down image
+                                                        border-layer
+                                                        EXPAND-AS-NECESSARY)))
+            ) ; 1. If border exists, Border & Target -> Target
+
             (set! target-layer (car (gimp-image-merge-down image target-layer
                                                            EXPAND-AS-NECESSARY))
             ) ; 2. Target & Shadow -> Target
@@ -366,7 +376,7 @@
     _"Draws border, adds modern shadow and makes wavy crop. Even in GIFs."
     "Vladislav Glagolev <vladislav.glagolev@devexpress.com>, Konstantin Beliakov <Konstantin.Belyakov@devexpress.com>"
     "DevExpress Inc."
-    "8/2/2016"
+    "8/12/2016"
     "RGB* INDEXED* GRAY*"
     SF-IMAGE      "Image"                                   0
     SF-DRAWABLE   "Drawable"                                0
@@ -379,7 +389,7 @@
     SF-TOGGLE     _"Draw border (set if not already exists)" FALSE
     SF-COLOR      _"Border color"                           "black"
     SF-ADJUSTMENT _"Border opacity (0-100%)"                '(12 0 100 1 10 0 0)
-    SF-OPTION     _"Crop type"       '("Wavy crop" "Rectangular crop" "No crop")
+    SF-OPTION     _"Crop type"       '("Wavy crop" "Rectangular crop" "No crop (non-rect. layer)")
     SF-ADJUSTMENT _"Waves strength (0-calm, 10-tsunami)"    '(3 0 10 1 0 0)
 	SF-TOGGLE     _"Reverse wave phase"                     FALSE
     SF-OPTION     _"Target (if no selection)"    '("Full image" "Current layer")
