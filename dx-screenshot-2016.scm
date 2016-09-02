@@ -66,6 +66,8 @@
                 )
             )
         ))
+        (if (gimp-drawable-has-alpha target-layer)
+                                (gimp-layer-add-alpha target-layer))
         (gimp-image-set-active-layer image target-layer) ; The main layer
         (set! initial-selection (car (gimp-selection-save image)))
     (if (= history-type 1) (gimp-image-undo-group-end image))
@@ -376,7 +378,7 @@
     _"Draws border, adds modern shadow and makes wavy crop. Even in GIFs."
     "Vladislav Glagolev <vladislav.glagolev@devexpress.com>, Konstantin Beliakov <Konstantin.Belyakov@devexpress.com>"
     "DevExpress Inc."
-    "8/12/2016"
+    "9/2/2016"
     "RGB* INDEXED* GRAY*"
     SF-IMAGE      "Image"                                   0
     SF-DRAWABLE   "Drawable"                                0
