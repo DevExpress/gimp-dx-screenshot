@@ -9,6 +9,7 @@
                                     draw-border
                                     border-color
                                     border-opacity
+                                    border-position
                                     crop-type
                                     amplitude
                                     reverse-phase
@@ -111,51 +112,54 @@
 
     (if (= draw-border TRUE) (begin           ; --------- Border Start ---------
     (if (= history-type 1) (gimp-image-undo-group-start image))
-        ; Fix margins for border
-        (if (= user-selection-exists TRUE) (begin
-            ; Add required margins for border
-            (if (= sel-docked-left TRUE)
-                (gimp-image-resize  image
-                                    (+ (car (gimp-image-width  image)) 1)
-                                       (car (gimp-image-height image))
-                                    1 0) )
-            (if (= sel-docked-right TRUE)
-                (gimp-image-resize  image
-                                    (+ (car (gimp-image-width  image)) 1)
-                                       (car (gimp-image-height image))
-                                    0 0) )
-            (if (= sel-docked-top TRUE)
-                (gimp-image-resize  image
-                                       (car (gimp-image-width  image))
-                                    (+ (car (gimp-image-height image)) 1)
-                                    0 1) )
-            (if (= sel-docked-bottom TRUE)
-                (gimp-image-resize  image
-                                       (car (gimp-image-width  image))
-                                    (+ (car (gimp-image-height image)) 1)
-                                    0 0) )
-            (gimp-image-select-rectangle image CHANNEL-OP-REPLACE
+
+        (if (= border-position 1) ; Outer border
+            ; Fix margins for border
+            (if (= user-selection-exists TRUE) (begin
+                ; Add required margins for border
+                (if (= sel-docked-left TRUE)
+                    (gimp-image-resize  image
+                                        (+ (car (gimp-image-width  image)) 1)
+                                           (car (gimp-image-height image))
+                                        1 0) )
+                (if (= sel-docked-right TRUE)
+                    (gimp-image-resize  image
+                                        (+ (car (gimp-image-width  image)) 1)
+                                           (car (gimp-image-height image))
+                                        0 0) )
+                (if (= sel-docked-top TRUE)
+                    (gimp-image-resize  image
+                                           (car (gimp-image-width  image))
+                                        (+ (car (gimp-image-height image)) 1)
+                                        0 1) )
+                (if (= sel-docked-bottom TRUE)
+                    (gimp-image-resize  image
+                                           (car (gimp-image-width  image))
+                                        (+ (car (gimp-image-height image)) 1)
+                                        0 0) )
+                (gimp-image-select-rectangle image CHANNEL-OP-REPLACE
                         (- (list-ref (gimp-selection-bounds image) 1) 1)   ;x0
                         (- (list-ref (gimp-selection-bounds image) 2) 1)   ;y0
                         (+ (- (list-ref (gimp-selection-bounds image) 3)
                               (list-ref (gimp-selection-bounds image) 1)) 2) ;w
                         (+ (- (list-ref (gimp-selection-bounds image) 4)
                               (list-ref (gimp-selection-bounds image) 2)) 2) ;h
-            ) ; Expand selection by 1px on each side
+                ) ; Expand selection by 1px on each side
 
-            (set! image-width (car (gimp-image-width image)))   ; Updare image
-            (set! image-height (car (gimp-image-height image))) ; dimensions
-        ) (begin ; Else
-            ; Simply expand the image and selection by 1px
-            (gimp-image-resize image (+ image-width 2) (+ image-height 2) 1 1)
-            (gimp-selection-all image)
+                (set! image-width (car (gimp-image-width image)))   ; Updare img
+                (set! image-height (car (gimp-image-height image))) ; dimensions
+            ) (begin ; Else
+                ; Simply expand the image and selection by 1px
+                (gimp-image-resize image (+ image-width 2)
+                                         (+ image-height 2) 1 1)
+                (gimp-selection-all image)
 
-            (set! image-width (+ image-width 2))   ; Update image
-            (set! image-height (+ image-height 2)) ; demendions
+                (set! image-width (+ image-width 2))   ; Update image
+                (set! image-height (+ image-height 2)) ; demendions
 
-            (set! sel-docked-left TRUE) (set! sel-docked-right  TRUE)
-            (set! sel-docked-top  TRUE) (set! sel-docked-bottom TRUE)
-        ))
+                (set! sel-docked-left TRUE) (set! sel-docked-right  TRUE)
+                (set! sel-docked-top  TRUE) (set! sel-docked-bottom TRUE)
+            )))
 
         (set! bordered-selection (car (gimp-selection-save image)))
 
@@ -391,6 +395,7 @@
     SF-TOGGLE     _"Draw border (set if not already exists)" FALSE
     SF-COLOR      _"Border color"                           "black"
     SF-ADJUSTMENT _"Border opacity (0-100%)"                '(12 0 100 1 10 0 0)
+    SF-OPTION     _"Border position"                        '("Inner" "Outer")
     SF-OPTION     _"Crop type"       '("Wavy crop" "Rectangular crop" "No crop (non-rect. layer)")
     SF-ADJUSTMENT _"Waves strength (0-calm, 10-tsunami)"    '(3 0 10 1 0 0)
 	SF-TOGGLE     _"Reverse wave phase"                     FALSE
