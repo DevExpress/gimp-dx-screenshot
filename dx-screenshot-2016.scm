@@ -1,4 +1,4 @@
-(define (script-fu-dx-screenshotv3  image
+(define (script-fu-dx-screenshot2016  image
                                     drawable
                                     drop-shadow
                                     shadow-color
@@ -377,12 +377,12 @@
 (gimp-context-pop)
 )) ;let, define
 
-(script-fu-register "script-fu-dx-screenshotv3"
+(script-fu-register "script-fu-dx-screenshot2016"
     _"_Screenshot processing 2016..."
     _"Draws border, adds modern shadow and makes wavy crop. Even in GIFs."
     "Vladislav Glagolev <vladislav.glagolev@devexpress.com>, Konstantin Beliakov <Konstantin.Belyakov@devexpress.com>"
     "DevExpress Inc."
-    "9/2/2016"
+    "9/21/2016"
     "RGB* INDEXED* GRAY*"
     SF-IMAGE      "Image"                                   0
     SF-DRAWABLE   "Drawable"                                0
@@ -404,4 +404,4 @@
     SF-OPTION     _"History type"           '("One step" "Several steps" "Verbose")
     SF-TOGGLE     _"Add white layer"                        TRUE
 )
-(script-fu-menu-register "script-fu-dx-screenshotv3" "<Image>/DX")
+(script-fu-menu-register "script-fu-dx-screenshot2016" "<Image>/DX")
