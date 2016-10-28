@@ -10,6 +10,7 @@
                                     border-color
                                     border-opacity
                                     border-position
+                                    non-rect-sel
                                     crop-type
                                     amplitude
                                     reverse-phase
@@ -74,16 +75,13 @@
     (if (= history-type 1) (gimp-image-undo-group-end image))
 
     (if (= history-type 1) (gimp-image-undo-group-start image)) ; Prepare layers
-        (if (= layers-type 0) ; doesn't work if target-layer is in the middle
+        (if (= layers-type 1) ; doesn't work if target-layer is in the middle
             (gimp-image-lower-item-to-bottom image target-layer))
-        (if (= layers-type 1) (begin ; Group
+        (if (= layers-type 0) (begin ; Group
             (set! group (car (gimp-layer-group-new image)))
-            (gimp-item-set-name group
-                                (string-append target-layer-name " decoration"))
+            (gimp-item-set-name group "Decoration")
             (gimp-image-insert-layer image group 0 ; no parent
-                (+ (car (gimp-image-get-item-position image target-layer))
-                (if (= crop-type 2) 1 0)) ) ; If non-rect layer, the shadow is
-                                            ; filled and should be behind
+                (- (car (gimp-image-get-item-position image target-layer)) 1))
         ))
     (if (= history-type 1) (gimp-image-undo-group-end image))
 
@@ -106,14 +104,14 @@
         (if (= num-of-docked 4) (set! user-selection-exists FALSE))
     ))
 
-    (if (and (= draw-border TRUE) (= crop-type 2)) (begin
-        (gimp-message "Non-rectangular borders are not supported")
-        (set! draw-border FALSE) ))
+    ;(if (and (= draw-border TRUE) (= crop-type 2)) (begin
+    ;    (gimp-message "Non-rectangular borders are not supported")
+    ;    (set! draw-border FALSE) ))
 
     (if (= draw-border TRUE) (begin           ; --------- Border Start ---------
     (if (= history-type 1) (gimp-image-undo-group-start image))
 
-        (if (= border-position 1) ; Outer border
+        (if (and (= border-position 1) (= non-rect-sel FALSE)) ; Outer border
             ; Fix margins for border
             (if (= user-selection-exists TRUE) (begin
                 ; Add required margins for border
@@ -159,28 +157,32 @@
 
                 (set! sel-docked-left TRUE) (set! sel-docked-right  TRUE)
                 (set! sel-docked-top  TRUE) (set! sel-docked-bottom TRUE)
-            )))
+        )))
 
         (set! bordered-selection (car (gimp-selection-save image)))
 
-        (set! x1 (list-ref (gimp-selection-bounds image) 1))
-        (set! y1 (list-ref (gimp-selection-bounds image) 2))
-        (set! x2 (list-ref (gimp-selection-bounds image) 3))
-        (set! y2 (list-ref (gimp-selection-bounds image) 4))
+        (if (= non-rect-sel TRUE)
+            (gimp-selection-border image 1)
+            (begin ; manual gimp-selection-border
+                (set! x1 (list-ref (gimp-selection-bounds image) 1))
+                (set! y1 (list-ref (gimp-selection-bounds image) 2))
+                (set! x2 (list-ref (gimp-selection-bounds image) 3))
+                (set! y2 (list-ref (gimp-selection-bounds image) 4))
 
-        (if (= crop-type 0) (begin ; wavy-crop
-            ; Add margins to only docked sides
-            (if (= sel-docked-left   TRUE) (set! x1 (+ x1 1)))
-            (if (= sel-docked-right  TRUE) (set! x2 (- x2 1)))
-            (if (= sel-docked-top    TRUE) (set! y1 (+ y1 1)))
-            (if (= sel-docked-bottom TRUE) (set! y2 (- y2 1)))
-        ) (begin ; Else
-            (set! x1 (+ x1 1)) (set! x2 (- x2 1)) ; Add all
-            (set! y1 (+ y1 1)) (set! y2 (- y2 1)) ; margins
-        ))
+                (if (= crop-type 0) (begin ; wavy-crop
+                    ; Add margins to only docked sides
+                    (if (= sel-docked-left   TRUE) (set! x1 (+ x1 1)))
+                    (if (= sel-docked-right  TRUE) (set! x2 (- x2 1)))
+                    (if (= sel-docked-top    TRUE) (set! y1 (+ y1 1)))
+                    (if (= sel-docked-bottom TRUE) (set! y2 (- y2 1)))
+                ) (begin ; Else
+                    (set! x1 (+ x1 1)) (set! x2 (- x2 1)) ; Add all
+                    (set! y1 (+ y1 1)) (set! y2 (- y2 1)) ; margins
+                ))
 
-        (gimp-image-select-rectangle image ; Our cool gimp-selection-border
+                (gimp-image-select-rectangle image
                                 CHANNEL-OP-SUBTRACT x1 y1 (- x2 x1) (- y2 y1))
+        ))
 
         ; Selection may disappear (if (= num-of-docked 0))
         (if (= (car (gimp-selection-bounds image)) TRUE) (begin
@@ -190,7 +192,7 @@
                                                 border-opacity NORMAL-MODE)))
             (gimp-drawable-fill border-layer TRANSPARENT-FILL)
 
-            (if (= layers-type 1) ; Group
+            (if (= layers-type 0) ; Group
                 (gimp-image-insert-layer image border-layer group 0)
             ; else
                 (gimp-image-insert-layer image border-layer 0 ; no parent
@@ -302,9 +304,10 @@
                          (list-ref (cdr (gimp-selection-bounds image)) 1))
         (gimp-selection-load initial-selection) ; moved
     ))
+    (if (= crop-type 2) (gimp-selection-load initial-selection)) ; No Crop
     (gimp-image-remove-channel image bordered-selection)
     (gimp-image-remove-channel image initial-selection)
-    (if (= crop-type 2) (gimp-selection-none image)) ; For complex selections
+    ;(if (= crop-type 2) (gimp-selection-none image)) ; For complex selections
 
     (if (= history-type 1) (gimp-image-undo-group-end image))
 
@@ -321,7 +324,7 @@
         (set! shadow-layer (car (gimp-image-get-layer-by-name image
                                                               "Drop Shadow")))
         (gimp-item-set-name shadow-layer "Shadow")
-        (if (= layers-type 1) ; Group
+        (if (= layers-type 0) ; Group
             (gimp-image-reorder-item image shadow-layer group 0)
             ; else
             (gimp-image-reorder-item image shadow-layer 0
@@ -396,11 +399,12 @@
     SF-COLOR      _"Border color"                           "black"
     SF-ADJUSTMENT _"Border opacity (0-100%)"                '(12 0 100 1 10 0 0)
     SF-OPTION     _"Border position"                        '("Inner" "Outer")
-    SF-OPTION     _"Crop type"       '("Wavy crop" "Rectangular crop" "No crop (non-rect. layer)")
+    SF-TOGGLE     _"Selection is not rectangular (always Inner)" FALSE
+    SF-OPTION     _"Crop type"       '("Wavy crop" "Rectangular crop" "No crop")
     SF-ADJUSTMENT _"Waves strength (0-calm, 10-tsunami)"    '(3 0 10 1 0 0)
 	SF-TOGGLE     _"Reverse wave phase"                     FALSE
     SF-OPTION     _"Target (if no selection)"    '("Full image" "Current layer")
-    SF-OPTION     _"Layer arrangement type" '("Separate layers" "Group" "Merge")
+    SF-OPTION     _"Layer arrangement type" '("Group" "Separate layers" "Merge")
     SF-OPTION     _"History type"           '("One step" "Several steps" "Verbose")
     SF-TOGGLE     _"Add white layer"                        TRUE
 )
