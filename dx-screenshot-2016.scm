@@ -52,7 +52,6 @@
             (gimp-image-convert-rgb image) ; No opacity in INDEXED
             (set! layers-type 2))) ; Merge layers
         (if (= user-selection-exists FALSE) (begin
-            (if (= crop-type 0) (set! crop-type 1)) ; Disable wavy crop
             (if (= target 0) ; Full image
                 (gimp-selection-all image)
                 (begin  ; Current layer
@@ -104,9 +103,8 @@
         (if (= num-of-docked 4) (set! user-selection-exists FALSE))
     ))
 
-    ;(if (and (= draw-border TRUE) (= crop-type 2)) (begin
-    ;    (gimp-message "Non-rectangular borders are not supported")
-    ;    (set! draw-border FALSE) ))
+    ; Turn off crop of no selection
+    (if (= user-selection-exists FALSE) (set! crop-type 2))
 
     (if (= draw-border TRUE) (begin           ; --------- Border Start ---------
     (if (= history-type 1) (gimp-image-undo-group-start image))
@@ -385,7 +383,7 @@
     _"Draws border, adds modern shadow and makes wavy crop. Even in GIFs."
     "Vladislav Glagolev <vladislav.glagolev@devexpress.com>, Konstantin Beliakov <Konstantin.Belyakov@devexpress.com>"
     "DevExpress Inc."
-    "10/28/2016"
+    "1/24/2017"
     "RGB* INDEXED* GRAY*"
     SF-IMAGE      "Image"                                   0
     SF-DRAWABLE   "Drawable"                                0
