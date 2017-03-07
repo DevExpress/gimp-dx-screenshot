@@ -10,7 +10,6 @@
                                     border-color
                                     border-opacity
                                     border-position
-                                    non-rect-sel
                                     crop-type
                                     amplitude
                                     reverse-phase
@@ -113,7 +112,8 @@
         (if (= border-position 1) ; If outer border
             ; Fix margins for border
             (if (= user-selection-exists TRUE) (begin
-                ; Add required margins for border
+                ; Add 2-pixel margins from the docked sides for boder
+                ; because 1-pixel margin breaks gimp-selection-border
                 (if (= sel-docked-left TRUE)
                     (gimp-image-resize  image
                                         (+ (car (gimp-image-width  image)) 2)
@@ -137,18 +137,6 @@
 
                 ; Actual expand selection by 1px on each side
                 (gimp-selection-grow image 1)
-                ;(if (= non-rect-sel TRUE) (begin
-                ;    (gimp-selection-grow image 1)
-                ;) ; If rectangular -- manual resize
-                ;    (gimp-image-select-rectangle image CHANNEL-OP-REPLACE
-                ;        (- (list-ref (gimp-selection-bounds image) 1) 1)   ;x0
-                ;        (- (list-ref (gimp-selection-bounds image) 2) 1)   ;y0
-                ;        (+ (- (list-ref (gimp-selection-bounds image) 3)
-                ;              (list-ref (gimp-selection-bounds image) 1)) 2) ;w
-                ;        (+ (- (list-ref (gimp-selection-bounds image) 4)
-                ;              (list-ref (gimp-selection-bounds image) 2)) 2) ;h
-                ;    )
-                ;)
 
                 (set! image-width (car (gimp-image-width image)))   ; Updare img
                 (set! image-height (car (gimp-image-height image))) ; dimensions
@@ -165,33 +153,11 @@
                 (set! sel-docked-top  TRUE) (set! sel-docked-bottom TRUE)
         )))
 
-        ; Inner border edge
+        ; Outer border edge
         (set! bordered-selection (car (gimp-selection-save image)))
 
-        ; Now making a 1-pixel border
-
-        (if (= non-rect-sel TRUE)
-            (gimp-selection-border image 1)
-            (begin ; manual gimp-selection-border
-                (set! x1 (list-ref (gimp-selection-bounds image) 1))
-                (set! y1 (list-ref (gimp-selection-bounds image) 2))
-                (set! x2 (list-ref (gimp-selection-bounds image) 3))
-                (set! y2 (list-ref (gimp-selection-bounds image) 4))
-
-                (if (= crop-type 0) (begin ; wavy-crop
-                    ; Add margins to only docked sides
-                    (if (= sel-docked-left   TRUE) (set! x1 (+ x1 1)))
-                    (if (= sel-docked-right  TRUE) (set! x2 (- x2 1)))
-                    (if (= sel-docked-top    TRUE) (set! y1 (+ y1 1)))
-                    (if (= sel-docked-bottom TRUE) (set! y2 (- y2 1)))
-                ) (begin ; Else
-                    (set! x1 (+ x1 1)) (set! x2 (- x2 1)) ; Add all
-                    (set! y1 (+ y1 1)) (set! y2 (- y2 1)) ; margins
-                ))
-
-                (gimp-image-select-rectangle image
-                                CHANNEL-OP-SUBTRACT x1 y1 (- x2 x1) (- y2 y1))
-        ))
+        ; Now making a 1-pixel inner border from this edge
+        (gimp-selection-border image 1)
 
         ; Selection may disappear (if (= num-of-docked 0))
         (if (= (car (gimp-selection-bounds image)) TRUE) (begin
@@ -408,7 +374,6 @@
     SF-COLOR      _"Border color"                           "black"
     SF-ADJUSTMENT _"Border opacity (0-100%)"                '(12 0 100 1 10 0 0)
     SF-OPTION     _"Border position"                        '("Inner" "Outer")
-    SF-TOGGLE     _"Selection is not rectangular (always Inner)" FALSE
     SF-OPTION     _"Crop type"       '("Wavy crop" "Rectangular crop" "No crop")
     SF-ADJUSTMENT _"Waves strength (0-calm, 10-tsunami)"    '(3 0 10 1 0 0)
 	SF-TOGGLE     _"Reverse wave phase"                     FALSE
