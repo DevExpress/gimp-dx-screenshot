@@ -52,8 +52,8 @@
             (gimp-image-convert-rgb image) ; No opacity in INDEXED
             (set! layers-type 2))) ; Merge layers
         (if (= user-selection-exists FALSE) (begin
-            (if (= target 0) ; Full image
-                (gimp-selection-all image)
+            (if (= target 0)
+                (gimp-selection-all image) ; Full image
                 (begin  ; Current layer
                     (gimp-image-select-rectangle image CHANNEL-OP-REPLACE
                                          (car (gimp-drawable-offsets drawable))
@@ -64,6 +64,7 @@
                     (set! target-layer drawable)
                     (set! target-layer-name
                                         (car (gimp-item-get-name target-layer)))
+                    (set! crop-type 2) ; No need to crop in this case
                 )
             )
         ))
