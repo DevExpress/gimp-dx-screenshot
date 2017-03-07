@@ -141,7 +141,7 @@
 
                 (set! image-width (car (gimp-image-width image)))   ; Updare img
                 (set! image-height (car (gimp-image-height image))) ; dimensions
-            ) (begin ; Else
+            ) (begin ; If the entire image is selected
                 ; Simply expand the image and selection by 1px
                 (gimp-image-resize image (+ image-width 2)
                                          (+ image-height 2) 1 1)
@@ -154,10 +154,10 @@
                 (set! sel-docked-top  TRUE) (set! sel-docked-bottom TRUE)
         )))
 
-        ; Outer border edge
+        ; Save outer border edge
         (set! bordered-selection (car (gimp-selection-save image)))
 
-        ; Now making a 1-pixel inner border from this edge
+        ; Make a 1-pixel inner border from this edge (beware edges)
         (gimp-selection-border image 1)
 
         (if (= crop-type 0) (begin ; wavy-crop
