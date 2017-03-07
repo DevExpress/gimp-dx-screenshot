@@ -40,7 +40,8 @@
         (sel-docked-top FALSE) (sel-docked-bottom FALSE)
         (num-of-docked 0)
 
-        (x1 0) (y1 0) (x2 0) (y2 0) (x 0) (y 0) (phase 0) (points 0) (point 0)
+        (x1 0) (y1 0) (x2 0) (y2 0) (w 0) (h 0) (x 0) (y 0)
+        (phase 0) (points 0) (point 0)
 
     )
 (gimp-context-push)
@@ -158,6 +159,24 @@
 
         ; Now making a 1-pixel inner border from this edge
         (gimp-selection-border image 1)
+
+        (if (= crop-type 0) (begin ; wavy-crop
+            ; Remove border from undocked sides
+            (set! x1 (list-ref (gimp-selection-bounds image) 1))
+            (set! y1 (list-ref (gimp-selection-bounds image) 2))
+            (set! x2 (list-ref (gimp-selection-bounds image) 3))
+            (set! y2 (list-ref (gimp-selection-bounds image) 4))
+            (set! w (- x2 x1)) (set! h (- y2 y1))
+
+            (if (= sel-docked-left   FALSE) (gimp-image-select-rectangle image
+                    CHANNEL-OP-SUBTRACT x1 y1 1 h)) ; x y w h !!!
+            (if (= sel-docked-right  FALSE) (gimp-image-select-rectangle image
+                    CHANNEL-OP-SUBTRACT (- x2 1) y1 1 h))
+            (if (= sel-docked-top    FALSE) (gimp-image-select-rectangle image
+                    CHANNEL-OP-SUBTRACT x1 y1 w 1))
+            (if (= sel-docked-bottom FALSE) (gimp-image-select-rectangle image
+                    CHANNEL-OP-SUBTRACT x1 (- y2 1) w 1))
+        ))
 
         ; Selection may disappear (if (= num-of-docked 0))
         (if (= (car (gimp-selection-bounds image)) TRUE) (begin
