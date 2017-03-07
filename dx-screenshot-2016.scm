@@ -110,38 +110,45 @@
     (if (= draw-border TRUE) (begin           ; --------- Border Start ---------
     (if (= history-type 1) (gimp-image-undo-group-start image))
 
-        (if (and (= border-position 1) (= non-rect-sel FALSE)) ; Outer border
+        (if (= border-position 1) ; If outer border
             ; Fix margins for border
             (if (= user-selection-exists TRUE) (begin
                 ; Add required margins for border
                 (if (= sel-docked-left TRUE)
                     (gimp-image-resize  image
-                                        (+ (car (gimp-image-width  image)) 1)
+                                        (+ (car (gimp-image-width  image)) 2)
                                            (car (gimp-image-height image))
-                                        1 0) )
+                                        2 0) )
                 (if (= sel-docked-right TRUE)
                     (gimp-image-resize  image
-                                        (+ (car (gimp-image-width  image)) 1)
+                                        (+ (car (gimp-image-width  image)) 2)
                                            (car (gimp-image-height image))
                                         0 0) )
                 (if (= sel-docked-top TRUE)
                     (gimp-image-resize  image
                                            (car (gimp-image-width  image))
-                                        (+ (car (gimp-image-height image)) 1)
-                                        0 1) )
+                                        (+ (car (gimp-image-height image)) 2)
+                                        0 2) )
                 (if (= sel-docked-bottom TRUE)
                     (gimp-image-resize  image
                                            (car (gimp-image-width  image))
-                                        (+ (car (gimp-image-height image)) 1)
+                                        (+ (car (gimp-image-height image)) 2)
                                         0 0) )
-                (gimp-image-select-rectangle image CHANNEL-OP-REPLACE
-                        (- (list-ref (gimp-selection-bounds image) 1) 1)   ;x0
-                        (- (list-ref (gimp-selection-bounds image) 2) 1)   ;y0
-                        (+ (- (list-ref (gimp-selection-bounds image) 3)
-                              (list-ref (gimp-selection-bounds image) 1)) 2) ;w
-                        (+ (- (list-ref (gimp-selection-bounds image) 4)
-                              (list-ref (gimp-selection-bounds image) 2)) 2) ;h
-                ) ; Expand selection by 1px on each side
+
+                ; Actual expand selection by 1px on each side
+                (gimp-selection-grow image 1)
+                ;(if (= non-rect-sel TRUE) (begin
+                ;    (gimp-selection-grow image 1)
+                ;) ; If rectangular -- manual resize
+                ;    (gimp-image-select-rectangle image CHANNEL-OP-REPLACE
+                ;        (- (list-ref (gimp-selection-bounds image) 1) 1)   ;x0
+                ;        (- (list-ref (gimp-selection-bounds image) 2) 1)   ;y0
+                ;        (+ (- (list-ref (gimp-selection-bounds image) 3)
+                ;              (list-ref (gimp-selection-bounds image) 1)) 2) ;w
+                ;        (+ (- (list-ref (gimp-selection-bounds image) 4)
+                ;              (list-ref (gimp-selection-bounds image) 2)) 2) ;h
+                ;    )
+                ;)
 
                 (set! image-width (car (gimp-image-width image)))   ; Updare img
                 (set! image-height (car (gimp-image-height image))) ; dimensions
@@ -158,7 +165,10 @@
                 (set! sel-docked-top  TRUE) (set! sel-docked-bottom TRUE)
         )))
 
+        ; Inner border edge
         (set! bordered-selection (car (gimp-selection-save image)))
+
+        ; Now making a 1-pixel border
 
         (if (= non-rect-sel TRUE)
             (gimp-selection-border image 1)
