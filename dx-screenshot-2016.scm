@@ -379,7 +379,7 @@
     _"Draws border, adds modern shadow and makes wavy crop. Even in GIFs."
     "Vladislav Glagolev <vladislav.glagolev@devexpress.com>, Konstantin Beliakov <Konstantin.Belyakov@devexpress.com>"
     "DevExpress Inc."
-    "02/09/2017" ;<=TIMESTAMP
+    "03/07/2017" ;<=TIMESTAMP
     "RGB* INDEXED* GRAY*"
     SF-IMAGE      "Image"                                   0
     SF-DRAWABLE   "Drawable"                                0
