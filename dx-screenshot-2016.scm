@@ -302,12 +302,12 @@
                             (list-ref (cdr (gimp-selection-bounds image)) 1))
                          (list-ref (cdr (gimp-selection-bounds image)) 0)
                          (list-ref (cdr (gimp-selection-bounds image)) 1))
-        (gimp-selection-load initial-selection) ; moved
     ))
-    (if (= crop-type 2) (gimp-selection-load initial-selection)) ; No Crop
+    (if (and (= target 1) (= draw-border FALSE)) ; Current layer && No border
+        (gimp-selection-none image)
+        (gimp-selection-load initial-selection)) ; Full image == No Crop
     (gimp-image-remove-channel image bordered-selection)
     (gimp-image-remove-channel image initial-selection)
-    ;(if (= crop-type 2) (gimp-selection-none image)) ; For complex selections
 
     (if (= history-type 1) (gimp-image-undo-group-end image))
 
