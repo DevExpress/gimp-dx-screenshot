@@ -110,49 +110,51 @@
     (if (= draw-border TRUE) (begin           ; --------- Border Start ---------
     (if (= history-type 1) (gimp-image-undo-group-start image))
 
-        (if (= border-position 1) ; If outer border
-            ; Fix margins for border
-            (if (= user-selection-exists TRUE) (begin
-                ; Add 2-pixel margins from the docked sides for boder
-                ; because 1-pixel margin breaks gimp-selection-border
-                (if (= sel-docked-left TRUE)
-                    (gimp-image-resize  image
-                                        (+ (car (gimp-image-width  image)) 2)
-                                           (car (gimp-image-height image))
-                                        2 0) )
-                (if (= sel-docked-right TRUE)
-                    (gimp-image-resize  image
-                                        (+ (car (gimp-image-width  image)) 2)
-                                           (car (gimp-image-height image))
-                                        0 0) )
-                (if (= sel-docked-top TRUE)
-                    (gimp-image-resize  image
-                                           (car (gimp-image-width  image))
-                                        (+ (car (gimp-image-height image)) 2)
-                                        0 2) )
-                (if (= sel-docked-bottom TRUE)
-                    (gimp-image-resize  image
-                                           (car (gimp-image-width  image))
-                                        (+ (car (gimp-image-height image)) 2)
-                                        0 0) )
+        ; Fix margins for border
+        (if (= user-selection-exists TRUE) (begin
+            ; Add 2-pixel margins from the docked sides for boder
+            ; because 1-pixel margin breaks gimp-selection-border
+            (if (= sel-docked-left TRUE)
+                (gimp-image-resize  image
+                                    (+ (car (gimp-image-width  image)) 2)
+                                       (car (gimp-image-height image))
+                                    2 0) )
+            (if (= sel-docked-right TRUE)
+                (gimp-image-resize  image
+                                    (+ (car (gimp-image-width  image)) 2)
+                                       (car (gimp-image-height image))
+                                    0 0) )
+            (if (= sel-docked-top TRUE)
+                (gimp-image-resize  image
+                                       (car (gimp-image-width  image))
+                                    (+ (car (gimp-image-height image)) 2)
+                                    0 2) )
+            (if (= sel-docked-bottom TRUE)
+                (gimp-image-resize  image
+                                       (car (gimp-image-width  image))
+                                    (+ (car (gimp-image-height image)) 2)
+                                    0 0) )
 
-                ; Actual expand selection by 1px on each side
+            (if border-position 1) ; If outer border
+                ; Expand selection by 1px on each side
                 (gimp-selection-grow image 1)
 
-                (set! image-width (car (gimp-image-width image)))   ; Updare img
-                (set! image-height (car (gimp-image-height image))) ; dimensions
-            ) (begin ; If the entire image is selected
-                ; Simply expand the image and selection by 1px
-                (gimp-image-resize image (+ image-width 2)
-                                         (+ image-height 2) 1 1)
+        ) (begin ; If the entire image is selected
+            ; Simply expand the image and selection by 2px
+            (gimp-image-resize image (+ image-width 2)
+                                     (+ image-height 2) 1 1)
+
+            (if (= border-position 1) (begin ; If outer border
                 (gimp-selection-all image)
+                (gimp-image-resize image
+                                    (+ (car (gimp-image-width image)) 2)
+                                    (+ (car (gimp-image-height image)) 2) 1 1)))
 
-                (set! image-width (+ image-width 2))   ; Update image
-                (set! image-height (+ image-height 2)) ; demendions
-
-                (set! sel-docked-left TRUE) (set! sel-docked-right  TRUE)
-                (set! sel-docked-top  TRUE) (set! sel-docked-bottom TRUE)
-        )))
+            (set! sel-docked-left TRUE) (set! sel-docked-right  TRUE)
+            (set! sel-docked-top  TRUE) (set! sel-docked-bottom TRUE)
+        ))
+        (set! image-width (car (gimp-image-width image)))   ; Updare img
+        (set! image-height (car (gimp-image-height image))) ; dimensions
 
         ; Save outer border edge
         (set! bordered-selection (car (gimp-selection-save image)))
