@@ -75,14 +75,18 @@
     (if (= history-type 1) (gimp-image-undo-group-end image))
 
     (if (= history-type 1) (gimp-image-undo-group-start image)) ; Prepare layers
+        (if (= layers-type 0) (begin ; Group
+            (if (and (= draw-border TRUE)
+                     (= drop-shadow TRUE)) (begin ; If we need group
+                (set! group (car (gimp-layer-group-new image)))
+                (gimp-item-set-name group "Decoration")
+                (gimp-image-insert-layer image group 0 ; no parent
+                 (- (car (gimp-image-get-item-position image target-layer)) 1)))
+            ; If we don't need group
+            (set! layers-type 1))
+        ))
         (if (= layers-type 1) ; doesn't work if target-layer is in the middle
             (gimp-image-lower-item-to-bottom image target-layer))
-        (if (= layers-type 0) (begin ; Group
-            (set! group (car (gimp-layer-group-new image)))
-            (gimp-item-set-name group "Decoration")
-            (gimp-image-insert-layer image group 0 ; no parent
-                (- (car (gimp-image-get-item-position image target-layer)) 1))
-        ))
     (if (= history-type 1) (gimp-image-undo-group-end image))
 
     ; Check margins for border
