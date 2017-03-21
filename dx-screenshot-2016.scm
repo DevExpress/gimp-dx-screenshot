@@ -291,10 +291,9 @@
         (gimp-selection-invert image)
         (gimp-image-set-active-layer image target-layer) ; Obligatory !!!!
         (plug-in-autocrop-layer RUN-NONINTERACTIVE image target-layer)
-        (set! initial-selection (car (gimp-selection-save image)))
     ))
 
-    (if (= crop-type 1)(begin                    ; -------- Simple crop --------
+    (if (= crop-type 1) (begin                    ; ------- Simple crop -------
         (gimp-selection-load bordered-selection)
         (gimp-image-crop image
                          (- (list-ref (cdr (gimp-selection-bounds image)) 2)
@@ -304,9 +303,10 @@
                          (list-ref (cdr (gimp-selection-bounds image)) 0)
                          (list-ref (cdr (gimp-selection-bounds image)) 1))
     ))
-    (if (and (= target 1) (= draw-border FALSE)) ; Current layer && No border
+    (if (and (= target 1) (= draw-border FALSE)) (begin ; Current layer && No border
         (gimp-selection-none image)
-        (gimp-selection-load initial-selection)) ; Full image == No Crop
+        (gimp-selection-load initial-selection) ; Full image == No Crop
+    ))
     (gimp-image-remove-channel image bordered-selection)
     (gimp-image-remove-channel image initial-selection)
 
