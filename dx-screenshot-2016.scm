@@ -291,6 +291,7 @@
         (gimp-selection-invert image)
         (gimp-image-set-active-layer image target-layer) ; Obligatory !!!!
         (plug-in-autocrop-layer RUN-NONINTERACTIVE image target-layer)
+        (set! initial-selection (car (gimp-selection-save image)))
     ))
 
     (if (= crop-type 1)(begin                    ; -------- Simple crop --------
@@ -385,7 +386,7 @@
     _"Draws border, adds modern shadow and makes wavy crop. Even in GIFs."
     "Vladislav Glagolev <vladislav.glagolev@devexpress.com>, Konstantin Beliakov <Konstantin.Belyakov@devexpress.com>"
     "DevExpress Inc."
-    "03/10/2017" ;<=TIMESTAMP
+    "03/21/2017" ;<=TIMESTAMP
     "RGB* INDEXED* GRAY*"
     SF-IMAGE      "Image"                                   0
     SF-DRAWABLE   "Drawable"                                0
