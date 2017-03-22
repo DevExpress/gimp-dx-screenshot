@@ -33,7 +33,6 @@
         (white-layer 0)
         (group 0)
 
-        (bordered-selection 0)
         (initial-selection 0)
 
         (sel-docked-left FALSE) (sel-docked-right FALSE)
@@ -139,9 +138,9 @@
                                     (+ (car (gimp-image-height image)) 2)
                                     0 0) )
 
-            (if border-position 1) ; If outer border
+            (if (= border-position 1) ; If outer border
                 ; Expand selection by 1px on each side
-                (gimp-selection-grow image 1)
+                (gimp-selection-grow image 1))
 
         ) (begin ; If the entire image is selected
             ; Simply expand the image and selection by 2px
@@ -159,9 +158,6 @@
         ))
         (set! image-width (car (gimp-image-width image)))   ; Updare img
         (set! image-height (car (gimp-image-height image))) ; dimensions
-
-        ; Save outer border edge
-        (set! bordered-selection (car (gimp-selection-save image)))
 
         ; Make a 1-pixel inner border from this edge (beware edges)
         (gimp-selection-border image 1)
@@ -205,7 +201,7 @@
                                         TRUE  ; fill-transparent
                                         SELECT-CRITERION-COMPOSITE 0 0)
 
-            (gimp-layer-resize border-layer ;crop border-layer to bordered-selection
+            (gimp-layer-resize border-layer ; crop border-layer to border
                 (-  (list-ref (cdr (gimp-selection-bounds image)) 2)
                     (list-ref (cdr (gimp-selection-bounds image)) 0) )
                 (-  (list-ref (cdr (gimp-selection-bounds image)) 3)
@@ -214,9 +210,7 @@
                 (- 0 (list-ref (cdr (gimp-selection-bounds image)) 1)) )
         ))
     (if (= history-type 1) (gimp-image-undo-group-end image))
-    )
-        (set! bordered-selection (car (gimp-selection-save image))) ; No border
-    )                                           ; --------- Border End ---------
+    ))                                          ; --------- Border End ---------
 
     (gimp-selection-load initial-selection)
 
@@ -296,15 +290,14 @@
     ))
 
     (if (= crop-type 1)(begin                    ; -------- Simple crop --------
-        (gimp-selection-load bordered-selection)
-        (gimp-image-crop image
-                         (- (list-ref (cdr (gimp-selection-bounds image)) 2)
-                            (list-ref (cdr (gimp-selection-bounds image)) 0))
-                         (- (list-ref (cdr (gimp-selection-bounds image)) 3)
-                            (list-ref (cdr (gimp-selection-bounds image)) 1))
-                         (list-ref (cdr (gimp-selection-bounds image)) 0)
-                         (list-ref (cdr (gimp-selection-bounds image)) 1))
         (gimp-selection-load initial-selection)
+        (gimp-layer-resize target-layer
+                        (-  (list-ref (cdr (gimp-selection-bounds image)) 2)
+                            (list-ref (cdr (gimp-selection-bounds image)) 0) )
+                        (-  (list-ref (cdr (gimp-selection-bounds image)) 3)
+                            (list-ref (cdr (gimp-selection-bounds image)) 1) )
+                        (- 0 (list-ref (cdr (gimp-selection-bounds image)) 0))
+                        (- 0 (list-ref (cdr (gimp-selection-bounds image)) 1)) )
     ))
 
     (if (and (= target 1)           ; Current layer
@@ -314,7 +307,6 @@
 
     ; In other cases, the selection is initial and the shadow applis to it
 
-    (gimp-image-remove-channel image bordered-selection)
     (gimp-image-remove-channel image initial-selection)
 
     (if (= history-type 1) (gimp-image-undo-group-end image))
