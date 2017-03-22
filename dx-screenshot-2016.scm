@@ -213,13 +213,15 @@
                 (- 0 (list-ref (cdr (gimp-selection-bounds image)) 0))
                 (- 0 (list-ref (cdr (gimp-selection-bounds image)) 1)) )
         ))
-    (if (= history-type 1) (gimp-image-undo-group-end image)))
-        (set! bordered-selection (car (gimp-selection-save image))) ; else
+    (if (= history-type 1) (gimp-image-undo-group-end image))
+    )
+        (set! bordered-selection (car (gimp-selection-save image))) ; No border
     )                                           ; --------- Border End ---------
+
+    (gimp-selection-load initial-selection)
 
     (if (= history-type 1) (gimp-image-undo-group-start image))
     (if (= crop-type 0) (begin             ; --------- Wavy crop Start ---------
-        (gimp-selection-load initial-selection)
         (if (< num-of-docked 2)
             (gimp-message (string-append
                 "Wawy crop from 3 or more sides is not recommended!\n"
@@ -293,7 +295,7 @@
         (plug-in-autocrop-layer RUN-NONINTERACTIVE image target-layer)
     ))
 
-    (if (= crop-type 1) (begin                    ; ------- Simple crop -------
+    (if (= crop-type 1)(begin                    ; -------- Simple crop --------
         (gimp-selection-load bordered-selection)
         (gimp-image-crop image
                          (- (list-ref (cdr (gimp-selection-bounds image)) 2)
@@ -302,11 +304,16 @@
                             (list-ref (cdr (gimp-selection-bounds image)) 1))
                          (list-ref (cdr (gimp-selection-bounds image)) 0)
                          (list-ref (cdr (gimp-selection-bounds image)) 1))
+        (gimp-selection-load initial-selection)
     ))
-    (if (and (= target 1) (= draw-border FALSE)) (begin ; Current layer && No border
-        (gimp-selection-none image)
-        (gimp-selection-load initial-selection) ; Full image == No Crop
-    ))
+
+    (if (and (= target 1)           ; Current layer
+             (= draw-border FALSE)  ; No border !!!
+             (> crop-type 0))       ; not Wavy Crop
+        (gimp-selection-none image)) ; We can set (script-fu-drop-shadow ) free
+
+    ; In other cases, the selection is initial and the shadow applis to it
+
     (gimp-image-remove-channel image bordered-selection)
     (gimp-image-remove-channel image initial-selection)
 
@@ -314,14 +321,15 @@
 
     (if (= drop-shadow TRUE) (begin                 ; --------- Shadow ---------
     (if (= history-type 1) (gimp-image-undo-group-start image))
-        (gimp-image-set-active-layer image target-layer) ; Obligatory !!!!
+        (gimp-image-set-active-layer image target-layer) ; Does not seem to work
+        ; (script-fu-drop-shadow always applies shador to border if it exists)
         (script-fu-drop-shadow  image target-layer
                                 shadow-offset-x
                                 shadow-offset-y
                                 shadow-blur
                                 shadow-color
                                 shadow-opacity
-                                1)    ; Allow resizing
+                                1)    ; Resize image if required
         (set! shadow-layer (car (gimp-image-get-layer-by-name image
                                                               "Drop Shadow")))
         (gimp-item-set-name shadow-layer "Shadow")
@@ -334,7 +342,7 @@
     (if (= history-type 1) (gimp-image-undo-group-end image))
     ))                                          ; --------- Shadow End ---------
 
-    (if (< crop-type 2) (gimp-image-resize-to-layers image))
+    (if (< crop-type 2) (gimp-image-resize-to-layers image)) ; If any crop
 
     (if (= history-type 1) (gimp-image-undo-group-start image))
         (gimp-selection-none image)
@@ -386,7 +394,7 @@
     _"Draws border, adds modern shadow and makes wavy crop. Even in GIFs."
     "Vladislav Glagolev <vladislav.glagolev@devexpress.com>, Konstantin Beliakov <Konstantin.Belyakov@devexpress.com>"
     "DevExpress Inc."
-    "03/21/2017" ;<=TIMESTAMP
+    "03/22/2017" ;<=TIMESTAMP
     "RGB* INDEXED* GRAY*"
     SF-IMAGE      "Image"                                   0
     SF-DRAWABLE   "Drawable"                                0
