@@ -34,9 +34,9 @@
         (group 0)
 
         (initial-selection 0)
-
+                   (sel-docked-top FALSE)
         (sel-docked-left FALSE) (sel-docked-right FALSE)
-        (sel-docked-top FALSE) (sel-docked-bottom FALSE)
+                  (sel-docked-bottom FALSE)
         (num-of-docked 0)
 
         (x1 0) (y1 0) (x2 0) (y2 0) (w 0) (h 0) (x 0) (y 0)
@@ -153,8 +153,9 @@
                                     (+ (car (gimp-image-width image)) 2)
                                     (+ (car (gimp-image-height image)) 2) 1 1)))
 
+                            (set! sel-docked-top  TRUE)
             (set! sel-docked-left TRUE) (set! sel-docked-right  TRUE)
-            (set! sel-docked-top  TRUE) (set! sel-docked-bottom TRUE)
+                            (set! sel-docked-bottom TRUE)
         ))
         (set! image-width (car (gimp-image-width image)))   ; Updare img
         (set! image-height (car (gimp-image-height image))) ; dimensions
@@ -163,21 +164,45 @@
         (gimp-selection-border image 1)
 
         (if (= crop-type 0) (begin ; wavy-crop
-            ; Remove border from undocked sides
+            ; Remove border from undocked sides.
+
             (set! x1 (list-ref (gimp-selection-bounds image) 1))
             (set! y1 (list-ref (gimp-selection-bounds image) 2))
             (set! x2 (list-ref (gimp-selection-bounds image) 3))
             (set! y2 (list-ref (gimp-selection-bounds image) 4))
             (set! w (- x2 x1)) (set! h (- y2 y1))
+;                        w
+;  (x1, y1) *-------------------------
+;           |########################|
+;           |##|                  |##|
+;       h   |##|                  |##|
+;           |##|__________________|##|
+;           |########################|
+;           -------------------------* (x2, y2)
 
+            ; Removing inner lines
             (if (= sel-docked-left   FALSE) (gimp-image-select-rectangle image
-                    CHANNEL-OP-SUBTRACT x1 y1 1 h)) ; x y w h !!!
+                    CHANNEL-OP-SUBTRACT x1 (+ y1 1) 1 (- h 2) )) ; x y w h !!!
             (if (= sel-docked-right  FALSE) (gimp-image-select-rectangle image
-                    CHANNEL-OP-SUBTRACT (- x2 1) y1 1 h))
+                    CHANNEL-OP-SUBTRACT (- x2 1) (+ y1 1) 1 (- h 2) ))
             (if (= sel-docked-top    FALSE) (gimp-image-select-rectangle image
-                    CHANNEL-OP-SUBTRACT x1 y1 w 1))
+                    CHANNEL-OP-SUBTRACT (+ x1 1) y1 (- w 2) 1))
             (if (= sel-docked-bottom FALSE) (gimp-image-select-rectangle image
-                    CHANNEL-OP-SUBTRACT x1 (- y2 1) w 1))
+                    CHANNEL-OP-SUBTRACT (+ x1 1) (- y2 1) (- w 2) 1))
+
+            ; Removing corner dots
+            (if (and (= sel-docked-left FALSE) (= sel-docked-top FALSE))
+                (gimp-image-select-rectangle image CHANNEL-OP-SUBTRACT
+                                             x1 y1 1 1 ))
+            (if (and (= sel-docked-right FALSE) (= sel-docked-top FALSE))
+                (gimp-image-select-rectangle image CHANNEL-OP-SUBTRACT
+                                             (- x2 1) y1 1 1 ))
+            (if (and (= sel-docked-left FALSE) (= sel-docked-bottom FALSE))
+                (gimp-image-select-rectangle image CHANNEL-OP-SUBTRACT
+                                             x1 (- y2 1) 1 1 ))
+            (if (and (= sel-docked-right FALSE) (= sel-docked-bottom FALSE))
+                (gimp-image-select-rectangle image CHANNEL-OP-SUBTRACT
+                                             (- x2 1) (- y2 1) 1 1 ))
         ))
 
         ; Selection may disappear (if (= num-of-docked 0))
@@ -219,7 +244,7 @@
         (if (< num-of-docked 2)
             (gimp-message (string-append
                 "Wawy crop from 3 or more sides is not recommended!\n"
-                "Wavy-cropped " (number->string (- 4 num-of-docked)) " sides")))
+                "Wavy-cropping " (number->string (- 4 num-of-docked)) " sides")))
         (set! x1 (list-ref (gimp-selection-bounds image) 1))
         (set! y1 (list-ref (gimp-selection-bounds image) 2))
         (set! x2 (list-ref (gimp-selection-bounds image) 3))
