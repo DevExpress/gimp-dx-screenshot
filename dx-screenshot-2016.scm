@@ -245,10 +245,12 @@
             (gimp-message (string-append
                 "Wawy crop from 3 or more sides is not recommended!\n"
                 "Wavy-cropping " (number->string (- 4 num-of-docked)) " sides")))
-        (set! x1 (list-ref (gimp-selection-bounds image) 1))
-        (set! y1 (list-ref (gimp-selection-bounds image) 2))
-        (set! x2 (list-ref (gimp-selection-bounds image) 3))
-        (set! y2 (list-ref (gimp-selection-bounds image) 4))
+
+        (set! x1 (+ (list-ref (gimp-selection-bounds image) 1) 1))
+        (set! y1 (+ (list-ref (gimp-selection-bounds image) 2) 1))
+        (set! x2 (- (list-ref (gimp-selection-bounds image) 3) 1))
+        (set! y2 (- (list-ref (gimp-selection-bounds image) 4) 1))
+        ; NOTE: The crop is shifted by 1px to touch the border
 
         (set! points (cons-array (* (+ (* 2 (- x2 x1)) (* 2 (- y2 y1))) 2) 'double)) ; amount of points for points array
 
