@@ -333,7 +333,7 @@
         (gimp-selection-load initial-selection)
         (map (lambda (layer)  ; Apply
                 (if (and (not (= layer border-layer)) (not (= layer group)))
-                 (begin
+                 (begin ; This
                   (gimp-layer-resize-to-image-size layer)
                   (gimp-layer-resize layer
                       (-  (list-ref (cdr (gimp-selection-bounds image)) 2)
@@ -431,7 +431,7 @@
     _"Draws border, adds modern shadow and makes wavy crop. Even in GIFs."
     "Vladislav Glagolev <vladislav.glagolev@devexpress.com>, Konstantin Beliakov <Konstantin.Belyakov@devexpress.com>"
     "DevExpress Inc."
-    "04/03/2017" ;<=TIMESTAMP
+    "05/05/2017" ;<=TIMESTAMP
     "RGB* INDEXED* GRAY*"
     SF-IMAGE      "Image"                                   0
     SF-DRAWABLE   "Drawable"                                0
