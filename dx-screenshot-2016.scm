@@ -226,13 +226,13 @@
                                         TRUE  ; fill-transparent
                                         SELECT-CRITERION-COMPOSITE 0 0)
 
-            (gimp-layer-resize border-layer ; crop border-layer to border
-                (-  (list-ref (cdr (gimp-selection-bounds image)) 2)
-                    (list-ref (cdr (gimp-selection-bounds image)) 0) )
-                (-  (list-ref (cdr (gimp-selection-bounds image)) 3)
-                    (list-ref (cdr (gimp-selection-bounds image)) 1) )
-                (- 0 (list-ref (cdr (gimp-selection-bounds image)) 0))
-                (- 0 (list-ref (cdr (gimp-selection-bounds image)) 1)) )
+            ;(gimp-layer-resize border-layer ; crop border-layer to border
+            ;    (-  (list-ref (cdr (gimp-selection-bounds image)) 2)
+            ;        (list-ref (cdr (gimp-selection-bounds image)) 0) )
+            ;    (-  (list-ref (cdr (gimp-selection-bounds image)) 3)
+            ;        (list-ref (cdr (gimp-selection-bounds image)) 1) )
+            ;    (- 0 (list-ref (cdr (gimp-selection-bounds image)) 0))
+            ;    (- 0 (list-ref (cdr (gimp-selection-bounds image)) 1)) )
         ))
     (if (= history-type 1) (gimp-image-undo-group-end image))
     ))                                          ; --------- Border End ---------
@@ -331,13 +331,18 @@
 
     (if (= crop-type 1)(begin                    ; -------- Simple crop --------
         (gimp-selection-load initial-selection)
-        (gimp-layer-resize target-layer
-                        (-  (list-ref (cdr (gimp-selection-bounds image)) 2)
-                            (list-ref (cdr (gimp-selection-bounds image)) 0) )
-                        (-  (list-ref (cdr (gimp-selection-bounds image)) 3)
-                            (list-ref (cdr (gimp-selection-bounds image)) 1) )
-                        (- 0 (list-ref (cdr (gimp-selection-bounds image)) 0))
-                        (- 0 (list-ref (cdr (gimp-selection-bounds image)) 1)) )
+        (map (lambda (layer)  ; Apply
+                (if (and (not (= layer border-layer)) (not (= layer group)))
+                 (begin
+                  (gimp-layer-resize-to-image-size layer)
+                  (gimp-layer-resize layer
+                      (-  (list-ref (cdr (gimp-selection-bounds image)) 2)
+                          (list-ref (cdr (gimp-selection-bounds image)) 0) )
+                      (-  (list-ref (cdr (gimp-selection-bounds image)) 3)
+                          (list-ref (cdr (gimp-selection-bounds image)) 1) )
+                      (- 0 (list-ref (cdr (gimp-selection-bounds image)) 0))
+                      (- 0 (list-ref (cdr (gimp-selection-bounds image)) 1))))))
+             (vector->list (cadr (gimp-image-get-layers image)))) ;To all layers
     ))
 
     (if (and (= target 1)           ; Current layer
