@@ -226,13 +226,7 @@
                                         TRUE  ; fill-transparent
                                         SELECT-CRITERION-COMPOSITE 0 0)
 
-            ;(gimp-layer-resize border-layer ; crop border-layer to border
-            ;    (-  (list-ref (cdr (gimp-selection-bounds image)) 2)
-            ;        (list-ref (cdr (gimp-selection-bounds image)) 0) )
-            ;    (-  (list-ref (cdr (gimp-selection-bounds image)) 3)
-            ;        (list-ref (cdr (gimp-selection-bounds image)) 1) )
-            ;    (- 0 (list-ref (cdr (gimp-selection-bounds image)) 0))
-            ;    (- 0 (list-ref (cdr (gimp-selection-bounds image)) 1)) )
+            (plug-in-autocrop-layer RUN-NONINTERACTIVE image border-layer)
         ))
     (if (= history-type 1) (gimp-image-undo-group-end image))
     ))                                          ; --------- Border End ---------
