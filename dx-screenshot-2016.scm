@@ -207,6 +207,11 @@
 
         ; Selection may disappear (if (= num-of-docked 0))
         (if (= (car (gimp-selection-bounds image)) TRUE) (begin
+
+            ; Inner border should look similar to outer
+            (if (and (= border-position 0) (= border-opacity 12)) ; default inner
+                (set! border-opacity 20))
+
             (set! border-layer (car (gimp-layer-new image image-width
                                                 image-height
                                                 RGBA-IMAGE "Border"
