@@ -43,6 +43,21 @@
         (phase 0) (points 0) (point 0)
 
     )
+
+; GIMP 2.9 default opacity fix
+(if (char=? (string-ref (car (gimp-version)) 2) #\9)(begin
+    (if (= shadow-opacity 22) (set! shadow-opacity 50))
+    (if (= border-opacity 12) 
+        (if (= border-position 0)  ; inner
+            (set! border-opacity 38) 
+        ; else
+            (set! border-opacity 25)
+    ))
+) ; else
+(if (and (= border-position 0) (= border-opacity 12)) ; default inner
+    (set! border-opacity 20)) ; Inner border should look like outer
+)
+
 (gimp-context-push)
 (if (= history-type 0) (gimp-image-undo-group-start image))
 ;BEGIN -----------------------------------------------------------
@@ -208,10 +223,6 @@
         ; Selection may disappear (if (= num-of-docked 0))
         (if (= (car (gimp-selection-bounds image)) TRUE) (begin
 
-            ; Inner border should look similar to outer
-            (if (and (= border-position 0) (= border-opacity 12)) ; default inner
-                (set! border-opacity 20))
-
             (set! border-layer (car (gimp-layer-new image image-width
                                                 image-height
                                                 RGBA-IMAGE "Border"
@@ -236,7 +247,7 @@
     (if (= history-type 1) (gimp-image-undo-group-end image))
     ))                                          ; --------- Border End ---------
 
-    (gimp-selection-load initial-selection)
+    (gimp-image-select-item image CHANNEL-OP-REPLACE initial-selection)
 
     (if (= history-type 1) (gimp-image-undo-group-start image))
     (if (= crop-type 0) (begin             ; --------- Wavy crop Start ---------
@@ -329,7 +340,7 @@
     ))
 
     (if (= crop-type 1)(begin                    ; -------- Simple crop --------
-        (gimp-selection-load initial-selection)
+        (gimp-image-select-item image CHANNEL-OP-REPLACE initial-selection)
         (map (lambda (layer)  ; Apply
                 (if (and (not (= layer border-layer)) (not (= layer group)))
                  (begin ; This
@@ -438,7 +449,7 @@
     SF-COLOR      _"Shadow color"                           "black"
     SF-ADJUSTMENT _"Shadow offset X (-10..10 pixels)"       '(0 -10 10 1 10 0)
     SF-ADJUSTMENT _"Shadow offset Y (-10..10 pixels)"       '(2 -10 10 1 10 0)
-    SF-ADJUSTMENT _"Shadow blur radius (0..40 pixels)"      '(6 0 40 1 10 0 0)
+    SF-ADJUSTMENT _"Shadow blur radius (0..40 pixels)"      '(8 0 40 1 10 0 0)
     SF-ADJUSTMENT _"Shadow opacity (0-100%)"                '(22 0 100 1 10 0 0)
     SF-TOGGLE     _"Draw border (set if not already exists)" FALSE
     SF-COLOR      _"Border color"                           "black"
