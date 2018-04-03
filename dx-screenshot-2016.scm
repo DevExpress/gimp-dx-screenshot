@@ -44,8 +44,8 @@
 
     )
 
-; GIMP 2.9 default opacity fix
-(if (char=? (string-ref (car (gimp-version)) 2) #\9)(begin
+; GIMP 2.9+ default opacity fix
+(if (or (char=? (string-ref (car (gimp-version)) 2) #\9) (char=? (string-ref (car (gimp-version)) 2) #\1))(begin
     (if (= shadow-opacity 22) (set! shadow-opacity 50))
     (if (= border-opacity 12) 
         (if (= border-position 0)  ; inner
