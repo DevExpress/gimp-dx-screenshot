@@ -1,32 +1,32 @@
-# A collection of GIMP scripts used in DevExpress for screenshot design
+# GIMP Screensout Plugins by DevExpress
+## A collection of Script-Fu scripts used in DevExpress for screenshot design
 
-
-## dx-pointer-*
+### dx-pointer-*
 Adds mouse pointer to screenshot image and applies shadow and/or motion effect.
 
-## dx-highlight-*
+### dx-highlight-*
 Highlights the selected area.
 
-## dx-export-png8-*
+### dx-export-png8-*
 Couple of GIMP scripts. One makes a web-optimized copy of image (256 colors, png), another does the same with a set of images in batch mode.
 
 * File -> Export to PNG8
 * File -> Export to PNG8 (batch)
 
-## Screenshot Processing 2016
+### Screenshot Processing 2016
 
 In 2016, the screenshot processing script was entirely redesigned. 
 
 The following changes were made.
 
-### Removed features
+#### Removed features
 * **Erase corners**. Please, do update to Windows 10 now. Screenshots from Windows 7 is a shame for any modern windows software, IMHO.
 * **Auto-flatten**. Useless. And dangerous for GIFs. It will flatten on export anyway, but you **should** save the original XCF with layers to be able to fix and update your screenshots. 
 
 > **NOTE**
 You can use the **dx_screenshot_saver** script to organize the XCFs with 265-colored PNGs automatically. It is written on Python-Fu, which makes it very easy to edit and personalize.
 
-### Added features
+#### Added features
 * Works with **GIFs** and images in the **Indexed** mode!
 * The default **shadow settings** were corrected according to the designer's prototype.
 * **Borders**. Outer or inner. Please add them to all pictures without borders. Every image should be explicitly separated from the text background. GIFs too.
