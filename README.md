@@ -23,7 +23,7 @@ In 2016, the screenshot processing script was entirely redesigned.
 The following changes were made.
 
 #### Removed features
-* **Erase corners**. Please, do update to Windows 10 now. Screenshots from Windows 7 is a shame for any modern windows software, IMHO.
+* **Erase corners**. Useless in Windows 8+.
 * **Auto-flatten**. Useless. And dangerous for GIFs. It will flatten on export anyway, but you **should** save the original XCF with layers to be able to fix and update your screenshots. 
 
 #### Added features
