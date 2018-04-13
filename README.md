@@ -42,6 +42,6 @@ The examples of images processed by this script can be found in the [CodeRush](h
 
 ## How to Use
 
-1. Run [Install to 2.10.bat](Install%20to%202.10.bat) or [Install to 2.8.bat](Install%20to%202.10.bat) as Administrator.
+1. Run [Install to 2.10.bat](Install%20to%202.10.bat) or [Install to 2.8.bat](Install%20to%202.8.bat) as Administrator.
 2. Restart GIMP.
 3. Notice the new **DX** menu.
