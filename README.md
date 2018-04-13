@@ -1,19 +1,19 @@
-# GIMP Screensout Plugins by DevExpress
+# GIMP Screenshot Plugins by DevExpress
 ## A collection of Script-Fu scripts used in DevExpress for screenshot design
 
-### dx-pointer-*
+### [dx-pointer](dx-pointer.scm)
 Adds mouse pointer to screenshot image and applies shadow and/or motion effect.
 
-### dx-highlight-*
+### [dx-highlight](dx-highlight.scm)
 Highlights the selected area.
 
-### dx-export-png8-*
-Couple of GIMP scripts. One makes a web-optimized copy of image (256 colors, png), another does the same with a set of images in batch mode.
+### [dx-export-png8](dx-export-png8.scm)
+Мakes a web-optimized copy of an image (256 colors, png).
 
-* File -> Export to PNG8
-* File -> Export to PNG8 (batch)
+### [dx-screenshot](dx-screenshot.scm)
+Erases XP/Vista style window corners, makes wavy crop, adds shadow.
 
-### Screenshot Processing 2016
+### [Screenshot Processing 2016](dx-screenshot-2016.scm)
 
 In 2016, the screenshot processing script was entirely redesigned. 
 
@@ -33,7 +33,7 @@ You can use the **dx_screenshot_saver** script to organize the XCFs with 265-col
 * Different **crop types**. Wavy-crop is not always the best solution, you might want a simple **rectangular crop** with the border.
 * Ability to decorate a **layer inside a bigger canvas**. Even the non-rectangular one.
 (**Crop type**: _No crop_).
-* If you try to wavy-crop an image from three or four sides, you will get a **warning** (if your GIMP window is not maximized [it's open-sourse, what did you expect?]). The designer advices to use wavy-crop from **one** side maximum. Consider the rectangular crop in difficult cases.
+* If you try to wavy-crop an image from three or four sides, you will get a **warning** (if your GIMP window is not maximized [it's open-source, what did you expect?]). The designer recommends using a wavy-crop from **one** side maximum. Consider the rectangular crop in difficult cases.
 * Different modes of **history** logging (used mostly for debugging).
 * Can place the layer decorations in a separate layer group.
 * Can add a white background layer in the end.
