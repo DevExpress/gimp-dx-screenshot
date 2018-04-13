@@ -1,4 +1,4 @@
-# GIMP Screenshot Plugins by DevExpress
+# GIMP Plugins for Screenshot Processing
 ## A collection of Script-Fu scripts used in DevExpress for screenshot design
 
 ### [dx-pointer](dx-pointer.scm)
