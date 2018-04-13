@@ -39,3 +39,9 @@ You can use the **dx_screenshot_saver** script to organize the XCFs with 265-col
 * Can add a white background layer in the end.
 
 The examples of images processed by this script can be found in the [CodeRush](https://documentation.devexpress.com/#CodeRushForRoslyn/CustomDocument115802) docs (not all images are updated yet).
+
+## How to Use
+
+1. Run [Install to 2.10.bat](Install to 2.10.bat) or [Install to 2.8.bat](Install to 2.8.bat) as an Administrator.
+2. Restart GIMP.
+3. Notice the new **DX** menu.
