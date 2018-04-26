@@ -1,5 +1,5 @@
 # GIMP Scripts for Screenshot Processing
-## A collection of Script-Fu scripts used in DevExpress to design screenshots
+## Script-Fu scripts used in DevExpress to design screenshots
 
 ### [dx-pointer](dx-pointer.scm)
 Adds mouse pointer to screenshot image and applies shadow and/or motion effect.
